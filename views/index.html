@@ -1,0 +1,57 @@
+<!-- This is a static file -->
+<!-- served from your routes in server.js -->
+
+<!-- You might want to try something fancier: -->
+<!-- html/nunjucks docs: https://mozilla.github.io/nunjucks/ -->
+<!-- pug: https://pugjs.org/ -->
+<!-- haml: http://haml.info/ -->
+<!-- hbs(handlebars): http://handlebarsjs.com/ -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>DApp-it</title>
+    <meta name="description" content="A cool thing made with Glitch">
+    <link id="favicon" rel="icon" href="https://proxy.duckduckgo.com/iu/?u=https%3A%2F%2Fi.ytimg.com%2Fvi%2FCbWxX3swBMY%2Fmaxresdefault.jpg&f=1" type="image/x-icon">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- import the webpage's stylesheet -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <!-- import the webpage's client-side javascript file -->
+    <script src="/client.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>
+        One-Click DApps!
+      </h1>
+    </header>
+
+    <main>
+    
+      <p>Enter the contract ABI:</p>
+      
+      <form>
+        <input name="abi" type="text" maxlength="100" placeholder="ABI" aria-labelledby="submit-abi">
+        <button type="submit" id="submit-abi">Create a DApp!</button>
+      </form>
+      
+      <section >
+        <div id="abi"></div> 
+      </section>
+    </main>
+
+    <footer>
+      Made with <a href="https://glitch.com">Glitch</a>!
+    </footer>
+
+    <!-- include the Glitch button to show what the webpage is about and
+          to make it easier for folks to view source and remix -->
+    <div class="glitchButton" style="position:fixed;top:20px;right:20px;"></div>
+    <script src="https://button.glitch.me/button.js"></script>
+
+  </body>
+</html>
