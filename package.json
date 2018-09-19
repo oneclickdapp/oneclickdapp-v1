@@ -7,7 +7,9 @@
   "description": "A simple Node app with SQLite as a database management system, instantly up and running.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node server.js",
+    "client": "node start-client.js"
   },
   "dependencies": {
     "express": "^4.16.3",
@@ -18,7 +20,15 @@
     "webpack": "^4.19.1",
     "webpack-cli": "^3.1.0",
     "ethereum-abi-ui": "^1.0.0",
-    "web3": "^0.20.7"
+    "web3": "^0.20.7",
+    "body-parser": "^1.18.3",
+    "fs": "0.0.2",
+    "lodash": "^4.17.10",
+    "mongodb": "^2.2.36",
+    "mongoose": "^5.2.4"
+  },
+  "devDependencies": {
+    "concurrently": "3.1.0"
   },
   "engines": {
     "node": "8.x"
