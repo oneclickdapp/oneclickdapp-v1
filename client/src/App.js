@@ -7,11 +7,11 @@ import {
   // Table,
   // Input,
   // Message,
-  Form
+  Form,
   // Card,
   // Divider,
   // Segment,
-  // Header,
+  Header
   // Icon,
   // Label
 } from "semantic-ui-react";
@@ -24,78 +24,228 @@ import {
 } from "ethereum-abi-ui";
 
 class App extends Component {
-  state = { abi: "" };
+  state = {
+    abiFormatted: "",
+    input: `[
+  	{
+  		"constant": false,
+  		"inputs": [],
+  		"name": "distributeFunds",
+  		"outputs": [
+  			{
+  				"name": "",
+  				"type": "bool"
+  			}
+  		],
+  		"payable": true,
+  		"stateMutability": "payable",
+  		"type": "function"
+  	},
+  	{
+  		"constant": false,
+  		"inputs": [],
+  		"name": "kill",
+  		"outputs": [],
+  		"payable": false,
+  		"stateMutability": "nonpayable",
+  		"type": "function"
+  	},
+  	{
+  		"constant": false,
+  		"inputs": [
+  			{
+  				"name": "_recipients",
+  				"type": "address[]"
+  			}
+  		],
+  		"name": "setRecipients",
+  		"outputs": [
+  			{
+  				"name": "",
+  				"type": "bool"
+  			}
+  		],
+  		"payable": false,
+  		"stateMutability": "nonpayable",
+  		"type": "function"
+  	},
+  	{
+  		"constant": true,
+  		"inputs": [
+  			{
+  				"name": "",
+  				"type": "uint256"
+  			}
+  		],
+  		"name": "recipientAddress",
+  		"outputs": [
+  			{
+  				"name": "",
+  				"type": "address"
+  			}
+  		],
+  		"payable": false,
+  		"stateMutability": "view",
+  		"type": "function"
+  	},
+  	{
+  		"constant": true,
+  		"inputs": [],
+  		"name": "viewRecipients",
+  		"outputs": [
+  			{
+  				"name": "",
+  				"type": "address[]"
+  			}
+  		],
+  		"payable": false,
+  		"stateMutability": "view",
+  		"type": "function"
+  	},
+  	{
+  		"constant": true,
+  		"inputs": [],
+  		"name": "owner",
+  		"outputs": [
+  			{
+  				"name": "",
+  				"type": "address"
+  			}
+  		],
+  		"payable": false,
+  		"stateMutability": "view",
+  		"type": "function"
+  	},
+  	{
+  		"constant": false,
+  		"inputs": [
+  			{
+  				"name": "_newOwner",
+  				"type": "address"
+  			}
+  		],
+  		"name": "changeOwner",
+  		"outputs": [],
+  		"payable": false,
+  		"stateMutability": "nonpayable",
+  		"type": "function"
+  	},
+  	{
+  		"constant": true,
+  		"inputs": [],
+  		"name": "numberRecipients",
+  		"outputs": [
+  			{
+  				"name": "",
+  				"type": "uint256"
+  			}
+  		],
+  		"payable": false,
+  		"stateMutability": "view",
+  		"type": "function"
+  	},
+  	{
+  		"constant": false,
+  		"inputs": [],
+  		"name": "reset",
+  		"outputs": [],
+  		"payable": false,
+  		"stateMutability": "nonpayable",
+  		"type": "function"
+  	},
+  	{
+  		"payable": true,
+  		"stateMutability": "payable",
+  		"type": "fallback"
+  	}
+  ]`
+  };
 
-  submitABI = () => {
+  handleChange = (e, { value }) => this.setState({ input: value });
+
+  handleSubmit = () => {
     console.log("Creating DApp...");
 
-    //not sure what these are for
-    let form;
-
-    const fields = [];
-
-    if (canRenderMethodParams(this.state.abi, "approve")) {
-      console.log("canRenderMethodParams");
-      renderMethodParams(this.state.abi, "approve", (name, instance) => {
-        switch (instance.fieldType()) {
-          case FIELD_TYPES.NUMBER: {
-            console.log(name);
-            // const input = $(`<input type="number" name="${name}" />`);
-            // input.instance = instance;
-            // fields.push(input);
-            // form.append(input);
-            break;
-          }
-          case FIELD_TYPES.ADDRESS:
-            // ...
-            break;
-          // ...
-        }
-      });
-    } else {
-      console.log("incorrect ABI format");
+    let abiObject = "";
+    try {
+      abiObject = JSON.parse(`{ "method": ${this.state.input} }`);
+    } catch (error) {
+      console.log("ABI invalid, please check formatting");
+      return;
     }
 
-    // const values = {};
-    // console.log(JSON.stringify(fields));
-    // fields.forEach(input => {
-    //   // sanitize entered value
-    //   const val = input.instance.sanitize(input.val());
-    //
-    //   // check that it's valid
-    //   if (!input.instance.isValid(val)) {
-    //     throw new Error("Please enter valid data");
-    //   }
-    //
-    //   // add to final values to send
-    //   values[input.getAttribute("name")] = val;
-    // });
-
-    // const results = doWeb3MethodCallUsingFormFieldValues(values);
-
-    // now render the results
-    // if (canRenderMethodOutputs(ABI, "approve")) {
-    //   renderMethodOutputs(
-    //     ABI,
-    //     "approve",
-    //     results,
-    //     (name, index, instance, result) => {
-    //       output.append(`<p>${name}: ${result}</p>`);
-    //     }
-    //   );
-    // }
+    this.setState({ abiFormatted: JSON.stringify(abiObject) });
   };
+
+  renderInterface() {
+    var items = [];
+    if (this.state.abiFormatted) {
+      const abiObject = JSON.parse(this.state.abiFormatted);
+      // Build the input form
+      abiObject.method.map(method => {
+        if (method.stateMutability != "view" && method.type === "function") {
+          console.log(`# ${method.name}`);
+          if (method.inputs.length) {
+            console.log(`   Inputs:`);
+            let inputs;
+            method.inputs.map(input => {
+              console.log(`    ${input.type} ${input.name}`);
+              items.push(
+                <Form>
+                  <Form.Input
+                    label={method.name}
+                    placeholder={input.type}
+                    // value={this.state.input}
+                    // onChange={this.handleChange}
+                  />
+                  <Form.Button onClick={this.handleSubmit} content="Submit" />
+                </Form>
+              );
+            });
+          }
+          // Add a value box if payable
+          if (method.payable) {
+            console.log(`   Inputs: (payable)`);
+            // Make an input form with a value
+            items.push(
+              <Form>
+                <Form.Input
+                  label={method.name}
+                  placeholder="value"
+                  // value={this.state.input}
+                  // onChange={this.handleChange}
+                />
+                <Form.Button onClick={this.handleSubmit} content="Submit" />
+              </Form>
+            );
+          }
+        }
+      });
+    }
+    return (
+      <div>
+        <Header>Interface</Header>
+        {items}
+      </div>
+    );
+  }
 
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <h1 className="App-title">Title name</h1>
+          <h1 className="App-title">One-Click DApp</h1>
         </header>
         <Form>
-          <Form.TextArea label="Contract ABI" placeholder="ABI" />
-          <Form.Button onClick={this.submitABI} content="DApp it up!" />
+          <Form.TextArea
+            label="Contract ABI"
+            placeholder="ABI"
+            value={this.state.input}
+            onChange={this.handleChange}
+          />
+          <Form.Button onClick={this.handleSubmit} content="DApp it up!" />
         </Form>
+        {this.renderInterface()}
       </div>
     );
   }
