@@ -178,6 +178,17 @@ class App extends Component {
   };
 
   renderInterface() {
+    return (
+      <div>
+        <Header>Calls:</Header>
+        {this.renderCalls()}
+        <Header>Views:</Header>
+        {this.renderViews()}
+      </div>
+    );
+  }
+
+  renderCalls() {
     var items = [];
     if (this.state.abiFormatted) {
       const abiObject = JSON.parse(this.state.abiFormatted);
@@ -222,12 +233,22 @@ class App extends Component {
         }
       });
     }
-    return (
-      <div>
-        <Header>Interface</Header>
-        {items}
-      </div>
-    );
+    return <div>{items}</div>;
+  }
+
+  renderViews() {
+    var items = [];
+    if (this.state.abiFormatted) {
+      const abiObject = JSON.parse(this.state.abiFormatted);
+      // Build the input form
+      abiObject.method.map(method => {
+        if (method.stateMutability === "view") {
+          console.log(`%% ${method.name}`);
+          items.push(<Button text={method.name} />);
+        }
+      });
+    }
+    return <div>{items}</div>;
   }
 
   render() {
