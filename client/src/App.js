@@ -14,8 +14,8 @@ import {
   // Divider,
   Segment,
   Header,
-  Icon
-  // Label
+  Icon,
+  Label
 } from "semantic-ui-react";
 
 // ABI for test purposes
@@ -24,17 +24,17 @@ import testABI from "./ethereum/sampleABI";
 class App extends Component {
   state = {
     abiFormatted: "",
-    input: JSON.stringify(testABI)
+    abi: JSON.stringify(testABI)
   };
 
-  handleChange = (e, { value }) => this.setState({ input: value });
+  handleChange = (e, { value }) => this.setState({ abi: value });
 
   handleSubmit = () => {
     console.log("Creating DApp...");
 
     let abiObject = "";
     try {
-      abiObject = JSON.parse(`{ "method": ${this.state.input} }`);
+      abiObject = JSON.parse(`{ "method": ${this.state.abi} }`);
     } catch (error) {
       console.log("ABI invalid, please check formatting");
       return;
@@ -167,14 +167,12 @@ class App extends Component {
             var outputItems = [];
             method.outputs.map(output => {
               console.log(`    ${output.type} ${output.name}`);
+              let name = output.name || "(unnamed)";
               outputItems.push(
-                <Form.Input
-                  inline
-                  label={output.name}
-                  placeholder={output.type}
-                  // value={this.state.input}
-                  // onChange={this.handleChange}
-                />
+                <p>
+                  {`${name}
+                  ${output.type}`}
+                </p>
               );
             });
             items.push(
@@ -183,9 +181,12 @@ class App extends Component {
                   {method.name}
                   <Header.Subheader>payable function</Header.Subheader>
                 </Header>
-                <Button floated="right" icon color="green">
-                  <Icon name="refresh" />
-                </Button>
+                <Label basic image attached="top right">
+                  <Button floated="right" icon>
+                    <Icon name="refresh" />
+                  </Button>
+                </Label>
+
                 {outputItems}
               </Segment>
             );
@@ -206,8 +207,28 @@ class App extends Component {
           <Form.TextArea
             label="Paste the ABI here:"
             placeholder="ABI"
-            value={this.state.input}
+            value={this.state.abi}
             onChange={this.handleChange}
+          />
+          <Form.Input inline label="Ethereum Network">
+            <Form.Dropdown
+              placeholder=""
+              selection
+              options={[
+                { key: "Main", value: "main", text: "Main" },
+                { key: "Ropsten", value: "ropsten", text: "Ropsten" },
+                { key: "Rinkeby", value: "rinkeby", text: "Rinkeby" },
+                { key: "Kovan", value: "kovan", text: "Kovan" },
+                { key: "local-host", value: "local", text: "local-host" }
+              ]}
+            />
+          </Form.Input>
+          <Form.Input
+            inline
+            label="Contract"
+            placeholder="0xab123..."
+            // value={this.state.input}
+            // onChange={this.handleChange}
           />
           <Form.Button onClick={this.handleSubmit} content="DApp it up!" />
         </Form>

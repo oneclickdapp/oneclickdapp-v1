@@ -70,8 +70,12 @@
     "name": "viewRecipients",
     "outputs": [
       {
-        "name": "",
+        "name": "recipients",
         "type": "address[]"
+      },
+      {
+        "name": "foo",
+        "type": "uint256"
       }
     ],
     "payable": false,
