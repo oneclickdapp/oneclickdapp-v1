@@ -8,7 +8,7 @@ import {
   Button,
   // Table,
   // Input,
-  // Message,
+  Message,
   Form,
   // Card,
   // Divider,
@@ -19,7 +19,7 @@ import {
 } from "semantic-ui-react";
 
 // ABI for test purposes
-import testABI from "./ethereum/sampleABI";
+import sampleABI from "./ethereum/sampleABI";
 
 // Ethereum components
 import web3 from "./ethereum/web3";
@@ -27,32 +27,37 @@ import web3 from "./ethereum/web3";
 class App extends Component {
   state = {
     abiFormatted: "",
-    abi: JSON.stringify(testABI),
+    abi: JSON.stringify(sampleABI),
     network: "",
-    contractAddress: ""
+    contractAddress: "",
+    errorMessage: "",
+    loading: false
   };
 
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
 
   handleSubmitDapp = () => {
     console.log("Creating DApp...");
-
-    // Check for proper formatting and pass the new
-    let abiObject = "";
+    this.setState({
+      errorMessage: "",
+      abiFormatted: ""
+    });
+    // Check for proper formatting and create a new contract instance
     try {
-      abiObject = JSON.parse(`{ "method": ${this.state.abi} }`);
-    } catch (error) {
-      console.log("ABI invalid, please ensure proper JSON format");
+      const myContract = new web3.eth.Contract(
+        JSON.parse(this.state.abi),
+        this.state.contractAddress
+      );
+      // console.log(JSON.stringify(myContract.options.jsonInterface));
+      this.setState({
+        abiFormatted: JSON.stringify(myContract.options.jsonInterface)
+      });
+    } catch (err) {
+      this.setState({
+        errorMessage: err.message
+      });
       return;
     }
-
-    this.setState({ abiFormatted: JSON.stringify(abiObject) });
-
-    const myContract = new web3.eth.Contract(
-      JSON.parse(this.state.abi),
-      this.state.contractAddress
-    );
-    console.log(JSON.stringify(myContract.options.jsonInterface));
   };
 
   // "Sends" alter the contract state, and require gas
@@ -105,7 +110,7 @@ class App extends Component {
     if (this.state.abiFormatted) {
       const abiObject = JSON.parse(this.state.abiFormatted);
       // Go through all methods
-      abiObject.method.map((method, i) => {
+      abiObject.map((method, i) => {
         // Only use functions which are not view-only
         if (method.stateMutability !== "view" && method.type === "function") {
           console.log(`# ${method.name}`);
@@ -195,7 +200,7 @@ class App extends Component {
     if (this.state.abiFormatted) {
       const abiObject = JSON.parse(this.state.abiFormatted);
       // Build the input form
-      abiObject.method.map((method, i) => {
+      abiObject.map((method, i) => {
         if (method.stateMutability === "view") {
           console.log(`%% VIEW ${method.name}`);
           if (method.outputs.length) {
@@ -236,7 +241,10 @@ class App extends Component {
   renderDappForm() {
     return (
       <Segment textAlign="left">
-        <Form>
+        <Form
+          error={!!this.state.errorMessage}
+          onSubmit={this.handleSubmitDapp}
+        >
           <Form.TextArea
             inline
             label="Paste the ABI here:"
@@ -273,13 +281,10 @@ class App extends Component {
               />
             </Grid.Column>
             <Grid.Column textAlign="center" verticalAlign="bottom">
-              <Button
-                color="green"
-                onClick={this.handleSubmitDapp}
-                content="DApp it up!"
-              />
+              <Button color="green" content="DApp it up!" />
             </Grid.Column>
           </Grid>
+          <Message error header="Oops!" content={this.state.errorMessage} />
         </Form>
       </Segment>
     );
