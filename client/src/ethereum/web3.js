@@ -1,13 +1,11 @@
-import Web3 from "web3";
+var Web3 = require("web3");
 
 //window is global only inside the browser
 let web3;
 
 if (typeof window !== "undefined" && typeof window.web3 !== "undefined") {
- 
   web3 = new Web3(window.web3.currentProvider);
   console.log("MetaMask is running.");
-
 } else {
   // If loaded not in browser, or if metakamask in not running...
   const provider = new Web3.providers.HttpProvider(
