@@ -70,18 +70,19 @@ class App extends Component {
     if (this.state.abiFormatted) {
       const abiObject = JSON.parse(this.state.abiFormatted);
       // Go through all methods
-      abiObject.method.map(method => {
+      abiObject.method.map((method, i) => {
         // Only use functions which are not view-only
-        if (method.stateMutability != "view" && method.type === "function") {
+        if (method.stateMutability !== "view" && method.type === "function") {
           console.log(`# ${method.name}`);
           // If it has arguments, then make a form
           if (method.inputs.length) {
             console.log(`   Inputs:`);
             var inputItems = [];
-            method.inputs.map(input => {
+            method.inputs.map((input, j) => {
               console.log(`    ${input.type} ${input.name}`);
               inputItems.push(
                 <Form.Input
+                  key={j}
                   inline
                   label={input.name}
                   placeholder={input.type}
@@ -91,7 +92,7 @@ class App extends Component {
               );
             });
             items.push(
-              <Segment textAlign="left">
+              <Segment textAlign="left" key={i}>
                 <Header textAlign="center">
                   {method.name}
                   <Header.Subheader>function</Header.Subheader>
@@ -112,7 +113,7 @@ class App extends Component {
             console.log(`   Inputs: (payable)`);
             // Make an input form with a value
             items.push(
-              <Segment textAlign="left">
+              <Segment textAlign="left" key={i}>
                 <Header textAlign="center">
                   {method.name}
                   <Header.Subheader>payable function</Header.Subheader>
@@ -139,7 +140,7 @@ class App extends Component {
           else {
             console.log(`   Inputs: (non-payable)`);
             items.push(
-              <Segment textAlign="left">
+              <Segment textAlign="left" key={i}>
                 <Header textAlign="center">
                   {method.name}
                   <Header.Subheader>function without inputs</Header.Subheader>
@@ -159,24 +160,24 @@ class App extends Component {
     if (this.state.abiFormatted) {
       const abiObject = JSON.parse(this.state.abiFormatted);
       // Build the input form
-      abiObject.method.map(method => {
+      abiObject.method.map((method, i) => {
         if (method.stateMutability === "view") {
           console.log(`%% VIEW ${method.name}`);
           if (method.outputs.length) {
             console.log(`   Outputs:`);
             var outputItems = [];
-            method.outputs.map(output => {
+            method.outputs.map((output, j) => {
               console.log(`    ${output.type} ${output.name}`);
               let name = output.name || "(unnamed)";
               outputItems.push(
-                <p>
+                <p key={j}>
                   {`${name}
                   ${output.type}`}
                 </p>
               );
             });
             items.push(
-              <Segment textAlign="left">
+              <Segment textAlign="left" key={i}>
                 <Header textAlign="center">
                   {method.name}
                   <Header.Subheader>payable function</Header.Subheader>
