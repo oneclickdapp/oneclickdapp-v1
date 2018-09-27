@@ -26,8 +26,12 @@
     "constant": false,
     "inputs": [
       {
-        "name": "a",
+        "name": "recipientsArray",
         "type": "address[]"
+      },
+      {
+        "name": "foo",
+        "type": "uint256"
       }
     ],
     "name": "setRecipients",

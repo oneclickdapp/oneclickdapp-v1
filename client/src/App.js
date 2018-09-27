@@ -1,7 +1,9 @@
 import React, { Component } from "react";
+
+//Styles
 import "./App.css";
 import {
-  // Grid,
+  Grid,
   // List,
   Button,
   // Table,
@@ -10,155 +12,19 @@ import {
   Form,
   // Card,
   // Divider,
-  // Segment,
-  Header
-  // Icon,
+  Segment,
+  Header,
+  Icon
   // Label
 } from "semantic-ui-react";
-import {
-  FIELD_TYPES,
-  canRenderMethodParams,
-  renderMethodParams,
-  canRenderMethodOutputs,
-  renderMethodOutputs
-} from "ethereum-abi-ui";
+
+// ABI for test purposes
+import testABI from "./ethereum/sampleABI";
 
 class App extends Component {
   state = {
     abiFormatted: "",
-    input: `[
-  	{
-  		"constant": false,
-  		"inputs": [],
-  		"name": "distributeFunds",
-  		"outputs": [
-  			{
-  				"name": "",
-  				"type": "bool"
-  			}
-  		],
-  		"payable": true,
-  		"stateMutability": "payable",
-  		"type": "function"
-  	},
-  	{
-  		"constant": false,
-  		"inputs": [],
-  		"name": "kill",
-  		"outputs": [],
-  		"payable": false,
-  		"stateMutability": "nonpayable",
-  		"type": "function"
-  	},
-  	{
-  		"constant": false,
-  		"inputs": [
-  			{
-  				"name": "_recipients",
-  				"type": "address[]"
-  			}
-  		],
-  		"name": "setRecipients",
-  		"outputs": [
-  			{
-  				"name": "",
-  				"type": "bool"
-  			}
-  		],
-  		"payable": false,
-  		"stateMutability": "nonpayable",
-  		"type": "function"
-  	},
-  	{
-  		"constant": true,
-  		"inputs": [
-  			{
-  				"name": "",
-  				"type": "uint256"
-  			}
-  		],
-  		"name": "recipientAddress",
-  		"outputs": [
-  			{
-  				"name": "",
-  				"type": "address"
-  			}
-  		],
-  		"payable": false,
-  		"stateMutability": "view",
-  		"type": "function"
-  	},
-  	{
-  		"constant": true,
-  		"inputs": [],
-  		"name": "viewRecipients",
-  		"outputs": [
-  			{
-  				"name": "",
-  				"type": "address[]"
-  			}
-  		],
-  		"payable": false,
-  		"stateMutability": "view",
-  		"type": "function"
-  	},
-  	{
-  		"constant": true,
-  		"inputs": [],
-  		"name": "owner",
-  		"outputs": [
-  			{
-  				"name": "",
-  				"type": "address"
-  			}
-  		],
-  		"payable": false,
-  		"stateMutability": "view",
-  		"type": "function"
-  	},
-  	{
-  		"constant": false,
-  		"inputs": [
-  			{
-  				"name": "_newOwner",
-  				"type": "address"
-  			}
-  		],
-  		"name": "changeOwner",
-  		"outputs": [],
-  		"payable": false,
-  		"stateMutability": "nonpayable",
-  		"type": "function"
-  	},
-  	{
-  		"constant": true,
-  		"inputs": [],
-  		"name": "numberRecipients",
-  		"outputs": [
-  			{
-  				"name": "",
-  				"type": "uint256"
-  			}
-  		],
-  		"payable": false,
-  		"stateMutability": "view",
-  		"type": "function"
-  	},
-  	{
-  		"constant": false,
-  		"inputs": [],
-  		"name": "reset",
-  		"outputs": [],
-  		"payable": false,
-  		"stateMutability": "nonpayable",
-  		"type": "function"
-  	},
-  	{
-  		"payable": true,
-  		"stateMutability": "payable",
-  		"type": "fallback"
-  	}
-  ]`
+    input: JSON.stringify(testABI)
   };
 
   handleChange = (e, { value }) => this.setState({ input: value });
@@ -180,10 +46,21 @@ class App extends Component {
   renderInterface() {
     return (
       <div>
-        <Header>Calls:</Header>
-        {this.renderCalls()}
-        <Header>Views:</Header>
-        {this.renderViews()}
+        <Grid columns={2}>
+          <Grid.Column>
+            <Header>
+              Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
+            </Header>
+            {this.renderCalls()}
+          </Grid.Column>
+          <Grid.Column>
+            <Header>
+              Views
+              <Header.Subheader>(free, read-only)</Header.Subheader>
+            </Header>
+            {this.renderViews()}
+          </Grid.Column>
+        </Grid>
       </div>
     );
   }
@@ -192,42 +69,83 @@ class App extends Component {
     var items = [];
     if (this.state.abiFormatted) {
       const abiObject = JSON.parse(this.state.abiFormatted);
-      // Build the input form
+      // Go through all methods
       abiObject.method.map(method => {
+        // Only use functions which are not view-only
         if (method.stateMutability != "view" && method.type === "function") {
           console.log(`# ${method.name}`);
+          // If it has arguments, then make a form
           if (method.inputs.length) {
             console.log(`   Inputs:`);
-            let inputs;
+            var inputItems = [];
             method.inputs.map(input => {
               console.log(`    ${input.type} ${input.name}`);
-              items.push(
-                <Form>
-                  <Form.Input
-                    label={method.name}
-                    placeholder={input.type}
-                    // value={this.state.input}
-                    // onChange={this.handleChange}
-                  />
-                  <Form.Button onClick={this.handleSubmit} content="Submit" />
-                </Form>
-              );
-            });
-          }
-          // Add a value box if payable
-          if (method.payable) {
-            console.log(`   Inputs: (payable)`);
-            // Make an input form with a value
-            items.push(
-              <Form>
+              inputItems.push(
                 <Form.Input
-                  label={method.name}
-                  placeholder="value"
+                  inline
+                  label={input.name}
+                  placeholder={input.type}
                   // value={this.state.input}
                   // onChange={this.handleChange}
                 />
-                <Form.Button onClick={this.handleSubmit} content="Submit" />
-              </Form>
+              );
+            });
+            items.push(
+              <Segment textAlign="left">
+                <Header textAlign="center">
+                  {method.name}
+                  <Header.Subheader>function</Header.Subheader>
+                </Header>
+                <Form>
+                  {inputItems}
+                  <Form.Button
+                    color="blue"
+                    onClick={this.handleSubmit}
+                    content="Submit"
+                  />
+                </Form>
+              </Segment>
+            );
+          }
+          // If it doesn't have arguments, but is payable, then make a form
+          else if (method.payable) {
+            console.log(`   Inputs: (payable)`);
+            // Make an input form with a value
+            items.push(
+              <Segment textAlign="left">
+                <Header textAlign="center">
+                  {method.name}
+                  <Header.Subheader>payable function</Header.Subheader>
+                </Header>
+
+                <Form>
+                  <Form.Input
+                    inline
+                    label={`Amount in ETH`}
+                    placeholder="value"
+                    // value={this.state.input}
+                    // onChange={this.handleChange}
+                  />
+                  <Form.Button
+                    color="blue"
+                    onClick={this.handleSubmit}
+                    content="Submit"
+                  />
+                </Form>
+              </Segment>
+            );
+          }
+          // If it doesn't have arguments, and is not payable, then make a button
+          else {
+            console.log(`   Inputs: (non-payable)`);
+            items.push(
+              <Segment textAlign="left">
+                <Header textAlign="center">
+                  {method.name}
+                  <Header.Subheader>function without inputs</Header.Subheader>
+                </Header>
+                <Button color="blue" content="Go" />
+              </Segment>
             );
           }
         }
@@ -243,8 +161,35 @@ class App extends Component {
       // Build the input form
       abiObject.method.map(method => {
         if (method.stateMutability === "view") {
-          console.log(`%% ${method.name}`);
-          items.push(<Button text={method.name} />);
+          console.log(`%% VIEW ${method.name}`);
+          if (method.outputs.length) {
+            console.log(`   Outputs:`);
+            var outputItems = [];
+            method.outputs.map(output => {
+              console.log(`    ${output.type} ${output.name}`);
+              outputItems.push(
+                <Form.Input
+                  inline
+                  label={output.name}
+                  placeholder={output.type}
+                  // value={this.state.input}
+                  // onChange={this.handleChange}
+                />
+              );
+            });
+            items.push(
+              <Segment textAlign="left">
+                <Header textAlign="center">
+                  {method.name}
+                  <Header.Subheader>payable function</Header.Subheader>
+                </Header>
+                <Button floated="right" icon color="green">
+                  <Icon name="refresh" />
+                </Button>
+                {outputItems}
+              </Segment>
+            );
+          }
         }
       });
     }
@@ -259,7 +204,7 @@ class App extends Component {
         </header>
         <Form>
           <Form.TextArea
-            label="Contract ABI"
+            label="Paste the ABI here:"
             placeholder="ABI"
             value={this.state.input}
             onChange={this.handleChange}
