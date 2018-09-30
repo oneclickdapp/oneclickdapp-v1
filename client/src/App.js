@@ -31,10 +31,36 @@ class App extends Component {
     network: "",
     contractAddress: "",
     errorMessage: "",
-    loading: false
+    loading: false,
+    methodArguments: []
   };
 
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
+
+  // Takes inputs from the user and stores them to JSON object methodArguments
+  handleArgumentsChange = (e, { name, inputkey, value }) => {
+    var newArguments = this.state.methodArguments;
+    let methodFound = false;
+
+    // Iterate through the array to find the right method
+    newArguments.forEach(method => {
+      if (method.name === name) {
+        methodFound = true;
+        method.inputs[inputkey] = value;
+      }
+    });
+    // Make a new entry if the method doesn't exist.
+    if (!methodFound) {
+      newArguments.push({ name: name, inputs: [] });
+      newArguments[newArguments.length - 1].inputs[inputkey] = value;
+    }
+    this.setState({ methodArguments: newArguments });
+    console.log(JSON.stringify(this.state.methodArguments));
+  };
+
+  handleSubmitFunction = (e, { name }) => {
+    console.log("submitting function to the blockchain...");
+  };
 
   handleSubmitDapp = () => {
     console.log("Creating DApp...");
@@ -48,7 +74,7 @@ class App extends Component {
         JSON.parse(this.state.abi),
         this.state.contractAddress
       );
-      // console.log(JSON.stringify(myContract.options.jsonInterface));
+      // Save the formatted abi for use in renderInterface()
       this.setState({
         abiFormatted: JSON.stringify(myContract.options.jsonInterface)
       });
@@ -60,28 +86,27 @@ class App extends Component {
     }
   };
 
-  // "Sends" alter the contract state, and require gas
-  // handleSubmitFunction = () => {
-  //   console.log("Doing function 'send'...");
-  //
-  //   try {
-  //    const accounts = await web3.eth.getAccounts();
-  //    await game.methods.register(this.state.name).send({
-  //      from: accounts[0],
-  //      value: entryFee
-  //    });
-  //    // Router.pushRoute("/");
-  //    Router.replaceRoute(`/games/${this.props.gameAddress}`);
-  //  } catch (err) {
-  //    this.setState({ errorMessage: err.message });
-  //  }
-  // };
-  //
-  // // "Calls" do not alter the contract state
-  // handleSubmitView = () => {
-  //   console.log("Doing view 'call'...");
-  //
-  // }
+  // "Send" functions alter the contract state, and require gas.
+  async handleSubmitFunction() {
+    console.log("Doing function 'send'...");
+
+    // try {
+    //   const accounts = await web3.eth.getAccounts();
+    //   await game.methods.register(this.state.name).send({
+    //     from: accounts[0],
+    //     value: entryFee
+    //   });
+    //   // Router.pushRoute("/");
+    //   Router.replaceRoute(`/games/${this.props.gameAddress}`);
+    // } catch (err) {
+    //   this.setState({ errorMessage: err.message });
+    // }
+  }
+
+  // "Call" functions do not alter the contract state. No gas needed.
+  handleSubmitView = () => {
+    console.log("Doing view 'call'...");
+  };
 
   renderInterface() {
     return (
@@ -113,21 +138,24 @@ class App extends Component {
       abiObject.map((method, i) => {
         // Only use functions which are not view-only
         if (method.stateMutability !== "view" && method.type === "function") {
-          console.log(`# ${method.name}`);
+          const methodName = method.name;
+          // console.log(`# ${methodName}`);
           // If it has arguments, then make a form
           if (method.inputs.length) {
-            console.log(`   Inputs:`);
+            // console.log(`   Inputs:`);
             var inputItems = [];
             method.inputs.map((input, j) => {
-              console.log(`    ${input.type} ${input.name}`);
+              // console.log(`    ${input.type} ${input.name} key: ${j}`);
               inputItems.push(
                 <Form.Input
+                  name={methodName}
                   key={j}
+                  inputkey={j}
+                  // value={this.state.methodArguments[]}
                   inline
                   label={input.name}
                   placeholder={input.type}
-                  // value={this.state.input}
-                  // onChange={this.handleChange}
+                  onChange={this.handleArgumentsChange}
                 />
               );
             });
@@ -137,20 +165,17 @@ class App extends Component {
                   {method.name}
                   <Header.Subheader>function</Header.Subheader>
                 </Header>
-                <Form>
+                <Form key={i} onSubmit={this.handleSubmitFunction}>
                   {inputItems}
-                  <Form.Button
-                    color="blue"
-                    onClick={this.handleSubmit}
-                    content="Submit"
-                  />
+                  <Form.Button color="blue" content="Submit" />
                 </Form>
               </Segment>
             );
           }
+          // TODO incorporate payable function together with regular function
           // If it doesn't have arguments, but is payable, then make a form
           else if (method.payable) {
-            console.log(`   Inputs: (payable)`);
+            // console.log(`   Inputs: (payable)`);
             // Make an input form with a value
             items.push(
               <Segment textAlign="left" key={i}>
@@ -159,33 +184,29 @@ class App extends Component {
                   <Header.Subheader>payable function</Header.Subheader>
                 </Header>
 
-                <Form>
+                <Form onSubmit={this.handleSubmitFunction}>
                   <Form.Input
                     inline
                     label={`Amount in ETH`}
                     placeholder="value"
-                    // value={this.state.input}
-                    // onChange={this.handleChange}
                   />
-                  <Form.Button
-                    color="blue"
-                    onClick={this.handleSubmit}
-                    content="Submit"
-                  />
+                  <Form.Button color="blue" content="Submit" />
                 </Form>
               </Segment>
             );
           }
           // If it doesn't have arguments, and is not payable, then make a button
           else {
-            console.log(`   Inputs: (non-payable)`);
+            // console.log(`   Inputs: (non-payable)`);
             items.push(
               <Segment textAlign="left" key={i}>
                 <Header textAlign="center">
                   {method.name}
                   <Header.Subheader>function without inputs</Header.Subheader>
                 </Header>
-                <Button color="blue" content="Go" />
+                <Form onSubmit={this.handleSubmitFunction}>
+                  <Button color="blue" content="Go" />
+                </Form>
               </Segment>
             );
           }
@@ -202,12 +223,12 @@ class App extends Component {
       // Build the input form
       abiObject.map((method, i) => {
         if (method.stateMutability === "view") {
-          console.log(`%% VIEW ${method.name}`);
+          // console.log(`%% VIEW ${method.name}`);
           if (method.outputs.length) {
-            console.log(`   Outputs:`);
+            // console.log(`   Outputs:`);
             var outputItems = [];
             method.outputs.map((output, j) => {
-              console.log(`    ${output.type} ${output.name}`);
+              // console.log(`    ${output.type} ${output.name}`);
               let name = output.name || "(unnamed)";
               outputItems.push(
                 <p key={j}>

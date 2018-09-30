@@ -1,0 +1,11 @@
+[
+  {
+    "name": "setRecipients",
+    "inputs": [
+      {
+        "key": 0,
+        "value": "foo"
+      }
+    ]
+  }
+]
