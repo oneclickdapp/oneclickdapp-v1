@@ -21,15 +21,16 @@ import {
 // ABI for test purposes
 import sampleABI from "./ethereum/sampleABI";
 
-// Ethereum components
+// Components
 import web3 from "./ethereum/web3";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 class App extends Component {
   state = {
     abiFormatted: "",
     abi: JSON.stringify(sampleABI),
     network: "",
-    contractAddress: "",
+    contractAddress: "0xd62911e9e87d3be4dafd05ae72b5ff1fdea1ef3e",
     errorMessage: "",
     loading: false,
     methodData: []
@@ -38,20 +39,18 @@ class App extends Component {
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
 
   // Takes inputs from the user and stores them to JSON object methodArguments
-  handleMethodDataChange = (e, { name, key, value }) => {
+  handleMethodDataChange = (e, { name, value, inputindex }) => {
     var newMethodData = this.state.methodData;
     // Check whether the method exists in the arguments list
     let methodIndex = newMethodData.findIndex(method => method.name === name);
     // Make a new entry if the method doesn't exist
-    // Only used in case form wasn't properly built during renderInterface()
     if (methodIndex === -1) {
       newMethodData.push({ name: name, inputs: [] });
-      // set index to last element in array
       methodIndex = newMethodData.length - 1;
     }
-    newMethodData[methodIndex].inputs[key] = value;
+    newMethodData[methodIndex].inputs[inputindex] = value;
     this.setState({ methodData: newMethodData });
-    console.log(JSON.stringify(this.state.methodData));
+    // console.log(JSON.stringify(this.state.methodData));
   };
 
   handleSubmitDapp = () => {
@@ -78,8 +77,8 @@ class App extends Component {
     }
   };
 
-  // send() functions alter the contract state, and require gas.
-  handleSubmitMethod = (e, { name }) => {
+  // send() methods alter the contract state, and require gas.
+  handleSubmitSend = (e, { name }) => {
     console.log("Performing function 'send()'...");
     this.setState({ errorMessage: "" });
     const { methodData, abi, contractAddress } = this.state;
@@ -115,66 +114,69 @@ class App extends Component {
     }
   };
 
-  // call() functions do not alter the contract state. No gas needed.
-  handleSubmitView = (e, { name }) => {
-    console.log("Performing function 'call()'...");
+  // call() methods do not alter the contract state. No gas needed.
+  handleSubmitCall = (e, { name }) => {
+    console.log(`${name}.call()`);
     this.setState({ errorMessage: "" });
     const { methodData, abi, contractAddress } = this.state;
 
     // note: only gets first method. There could be more!
-    // TODO fix to correct method matching correct inputs
+    // TODO fix this ^
     const method = methodData.find(method => method.name === name);
-    if (!method) {
-      this.setState({ errorMessage: "You must enter some values" });
-    } else {
-      console.log("method submitted" + JSON.stringify(method));
-      // Generate the contract object
-      // TODO use the contract instance created during submitDapp()
-      const myContract = new web3.eth.Contract(
-        JSON.parse(abi),
-        contractAddress
-      );
+    // return an empty array if no inputs exist
+    let inputs = [] || method.inputs;
 
-      try {
-        web3.eth.getAccounts().then(accounts => {
-          try {
-            // using "..." to destructure inputs
-            myContract.methods[method.name](...method.inputs).send({
-              from: accounts[0]
-            });
-          } catch (err) {
-            this.setState({ errorMessage: err.message });
-          }
-        });
-      } catch (err) {
-        this.setState({ errorMessage: err.message });
-      }
+    // Generate the contract object
+    // TODO use the contract instance created during submitDapp()
+    const myContract = new web3.eth.Contract(JSON.parse(abi), contractAddress);
+
+    try {
+      // using "..." to destructure inputs[]
+      myContract.methods[name](...inputs)
+        .call()
+        .then(console.log);
+    } catch (err) {
+      this.setState({ errorMessage: err.message });
     }
   };
+
+  // TODO remove, unnecesary
+  // buildMethodData = name => {
+  //   var newMethodData = this.state.methodData;
+  //   // Check whether the method exists in the arguments list
+  //   var methodExists = newMethodData.find(method => method.name === name);
+  //   // Make a new entry if the method doesn't exist
+  //   if (!methodExists) {
+  //     newMethodData.push({ name: name, inputs: [] });
+  //   }
+  //   this.setState({ methodData: newMethodData });
+  // };
 
   renderInterface() {
     return (
       <div>
-        <Grid columns={2}>
-          <Grid.Column>
-            <Header>
-              Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
-            </Header>
-            {this.renderMethods()}
-          </Grid.Column>
-          <Grid.Column>
-            <Header>
-              Views
-              <Header.Subheader>(free, read-only)</Header.Subheader>
-            </Header>
-            {this.renderViews()}
-          </Grid.Column>
-        </Grid>
+        <ErrorBoundary>
+          <Grid columns={2}>
+            <Grid.Column>
+              <Header>
+                Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
+              </Header>
+              {this.renderSends()}
+            </Grid.Column>
+            <Grid.Column>
+              <Header>
+                Views
+                <Header.Subheader>(free, read-only)</Header.Subheader>
+              </Header>
+              {this.renderCalls()}
+            </Grid.Column>
+          </Grid>
+        </ErrorBoundary>
       </div>
     );
   }
 
-  renderMethods() {
+  renderSends() {
     var forms = []; // Each Method gets a form
     if (this.state.abiFormatted) {
       // check that abi is ready
@@ -193,6 +195,7 @@ class App extends Component {
               <Form.Input
                 name={method.name}
                 key={j}
+                inputindex={j}
                 inline
                 label={input.name}
                 placeholder={input.type}
@@ -207,6 +210,7 @@ class App extends Component {
             formInputs.push(
               <Form.Input
                 key={i}
+                inputindex={i}
                 name={method.name}
                 inline
                 label={`Amount in ETH`}
@@ -222,11 +226,7 @@ class App extends Component {
                 {method.name}
                 <Header.Subheader>{methodTypeHelperText} </Header.Subheader>
               </Header>
-              <Form
-                onSubmit={this.handleSubmitMethod}
-                name={method.name}
-                key={i}
-              >
+              <Form onSubmit={this.handleSubmitSend} name={method.name} key={i}>
                 {formInputs}
                 <Form.Button color="blue" content="Submit" />
               </Form>
@@ -238,7 +238,7 @@ class App extends Component {
     return <div>{forms}</div>;
   }
 
-  renderViews() {
+  renderCalls() {
     const { abiFormatted, methodData } = this.state;
     var forms = []; // Each View gets a form
     if (abiFormatted) {
@@ -254,6 +254,7 @@ class App extends Component {
             formInputs.push(
               <Form.Input
                 name={method.name}
+                inputindex={j}
                 key={j}
                 inline
                 label={input.name}
@@ -281,7 +282,7 @@ class App extends Component {
                 {method.name}
                 <Header.Subheader>View</Header.Subheader>
               </Header>
-              <Form onSubmit={this.handleSubmitView} name={method.name} key={i}>
+              <Form onSubmit={this.handleSubmitCall} name={method.name} key={i}>
                 <Label basic image attached="top right">
                   <Button floated="right" icon>
                     <Icon name="refresh" />
@@ -351,6 +352,10 @@ class App extends Component {
   }
 
   render() {
+    if (this.state.hasError) {
+      // You can render any custom fallback UI
+      return <h1>Something went wrong.</h1>;
+    }
     return (
       <div className="App">
         <header className="App-header">
