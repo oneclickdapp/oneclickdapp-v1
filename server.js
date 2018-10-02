@@ -5,6 +5,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const { ObjectID } = require("mongodb");
 
+require("./db/config");
 var { mongoose } = require("./db/mongoose");
 var { Provider } = require("./models/Contract");
 

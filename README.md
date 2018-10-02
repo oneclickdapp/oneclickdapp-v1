@@ -19,10 +19,7 @@ The goal of this project is to make it easier to interact with smart contracts d
 
 1. Run `npm install` in both root directory, and in `/client`
 2. Create `config.js` in `/db` and enter your mongoDB URL
->var config = {
-  MONGO_URL:
-  "your_URL"
-};
+>process.env.MONGODB_URI = "mongodb://..."
 3. cd to root directory and run `npm start`
 
 ## Contact
