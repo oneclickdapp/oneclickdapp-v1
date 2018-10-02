@@ -15,6 +15,16 @@ The goal of this project is to make it easier to interact with smart contracts d
 - accounts to save your own pastes and links
 - custom domain endings
 
+## Run the app
+
+1. Run `npm install` in both root directory, and in `/client`
+2. Create `config.js` in `/db` and enter your mongoDB URL
+>var config = {
+  MONGO_URL:
+  "your_URL"
+};
+3. cd to root directory and run `npm start`
+
 ## Contact
 
 [Joseph](https://twitter.com/cupojoseph)

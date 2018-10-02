@@ -25,50 +25,86 @@ import sampleABI from "./ethereum/sampleABI";
 import web3 from "./ethereum/web3";
 import ErrorBoundary from "./components/ErrorBoundary";
 
+// Using axios to fetch existing JSON contract data
+const axios = require("axios");
+
 class App extends Component {
   state = {
-    abiFormatted: "",
-    abi: JSON.stringify(sampleABI),
+    abi: "",
+    abiRaw: JSON.stringify(sampleABI),
     network: "",
-    contractAddress: "0xd62911e9e87d3be4dafd05ae72b5ff1fdea1ef3e",
+    contractAddress: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d",
     errorMessage: "",
     loading: false,
     methodData: []
+  };
+
+  static async getInitialProps(props) {
+    // TODO get the mnemonic stored in the URL
+    // Unsure if this works >>
+    let mnemonic = props.query.address;
+    mnemonic = ""; // delete line once working
+    console.log("Mnemonic: " + mnemonic);
+    return { mnemonic };
+  }
+
+  // If the contract data is found, then create the DApp!
+  componentDidMount = () => {
+    if (this.loadExistingContract()) {
+      // TODO wait until setState is finished before continuing
+      this.handleSubmitDapp();
+    }
+  };
+
+  loadExistingContract = () => {
+    // TODO fetch contract data from server using the unique mnemonic
+    // TODO Build server to store the data
+    // This does not work currently >>
+    const { mnemonic } = this.props;
+    axios.get(`./contracts/${mnemonic}`).then(function(result) {
+      this.setState({
+        abiRaw: result.data
+      });
+    });
+
+    try {
+      // TODO check that the JSON data is valid
+      // const isValid = JSON.parse(sampleABI); // Turn off to prevent error
+      // If successful: abiRaw -> submitDapp()
+      this.setState({ abiRaw: JSON.stringify(sampleABI) });
+      return true;
+    } catch (e) {
+      console.log("Existing contract not found, or improper JSON format.");
+      console.log(e);
+      return false;
+    }
   };
 
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
 
   // Takes inputs from the user and stores them to JSON object methodArguments
   handleMethodDataChange = (e, { name, value, inputindex }) => {
-    var newMethodData = this.state.methodData;
-    // Check whether the method exists in the arguments list
-    let methodIndex = newMethodData.findIndex(method => method.name === name);
-    // Make a new entry if the method doesn't exist
-    if (methodIndex === -1) {
-      newMethodData.push({ name: name, inputs: [] });
-      methodIndex = newMethodData.length - 1;
-    }
+    let newMethodData = this.state.methodData;
+    const methodIndex = newMethodData.findIndex(method => method.name === name);
     newMethodData[methodIndex].inputs[inputindex] = value;
     this.setState({ methodData: newMethodData });
     // console.log(JSON.stringify(this.state.methodData));
   };
 
   handleSubmitDapp = () => {
+    const { abiRaw, contractAddress } = this.state;
+    this.setState({ errorMessage: "", abi: "" });
+
     console.log("Creating DApp...");
-    this.setState({
-      errorMessage: "",
-      abiFormatted: ""
-    });
     // Check for proper formatting and create a new contract instance
     try {
-      const myContract = new web3.eth.Contract(
-        JSON.parse(this.state.abi),
-        this.state.contractAddress
-      );
+      const abiObject = JSON.parse(abiRaw);
+      const myContract = new web3.eth.Contract(abiObject, contractAddress);
       // Save the formatted abi for use in renderInterface()
       this.setState({
-        abiFormatted: JSON.stringify(myContract.options.jsonInterface)
+        abi: JSON.stringify(myContract.options.jsonInterface)
       });
+      abiObject.forEach(method => this.createMethodData(method.name));
     } catch (err) {
       this.setState({
         errorMessage: err.message
@@ -116,15 +152,17 @@ class App extends Component {
 
   // call() methods do not alter the contract state. No gas needed.
   handleSubmitCall = (e, { name }) => {
-    console.log(`${name}.call()`);
-    this.setState({ errorMessage: "" });
-    const { methodData, abi, contractAddress } = this.state;
+    const { abi, contractAddress, methodData } = this.state;
+    let newMethodData = methodData;
 
+    this.setState({ errorMessage: "" });
+
+    console.log(`${name}.call()`);
     // note: only gets first method. There could be more!
     // TODO fix this ^
     const method = methodData.find(method => method.name === name);
     // return an empty array if no inputs exist
-    let inputs = [] || method.inputs;
+    let inputs = method.inputs || [];
 
     // Generate the contract object
     // TODO use the contract instance created during submitDapp()
@@ -134,23 +172,37 @@ class App extends Component {
       // using "..." to destructure inputs[]
       myContract.methods[name](...inputs)
         .call()
-        .then(console.log);
+        .then(response => {
+          console.log(`call response: ${JSON.stringify(response)}`);
+          const methodIndex = methodData.findIndex(
+            method => method.name === name
+          );
+          // if (response.length > 1) {
+          console.log("more than one response");
+          response.forEach((output, index) => {
+            newMethodData[methodIndex].outputs[index] = response;
+          });
+          console.log(`Call methodData outputs ${methodIndex}: `);
+          // } else newMethodData[methodIndex].outputs[0] = response;
+        });
+      // Update with new output data
+      this.setState({ methodData: newMethodData });
     } catch (err) {
       this.setState({ errorMessage: err.message });
     }
   };
 
-  // TODO remove, unnecesary
-  // buildMethodData = name => {
-  //   var newMethodData = this.state.methodData;
-  //   // Check whether the method exists in the arguments list
-  //   var methodExists = newMethodData.find(method => method.name === name);
-  //   // Make a new entry if the method doesn't exist
-  //   if (!methodExists) {
-  //     newMethodData.push({ name: name, inputs: [] });
-  //   }
-  //   this.setState({ methodData: newMethodData });
-  // };
+  createMethodData = name => {
+    var newMethodData = this.state.methodData;
+    // Check whether the method exists in the arguments list
+    var methodExists = newMethodData.find(method => method.name === name);
+    // Make a new entry if the method doesn't exist
+    if (!methodExists) {
+      newMethodData.push({ name: name, inputs: [], outputs: [] });
+      this.setState({ methodData: newMethodData });
+    }
+    return newMethodData;
+  };
 
   renderInterface() {
     return (
@@ -178,9 +230,9 @@ class App extends Component {
 
   renderSends() {
     var forms = []; // Each Method gets a form
-    if (this.state.abiFormatted) {
+    if (this.state.abi) {
       // check that abi is ready
-      const abiObject = JSON.parse(this.state.abiFormatted);
+      const abiObject = JSON.parse(this.state.abi);
       abiObject.forEach((method, i) => {
         // Iterate only Methods, not Views. NOTE Doesn't get the fallback
         if (method.stateMutability !== "view" && method.type === "function") {
@@ -239,19 +291,20 @@ class App extends Component {
   }
 
   renderCalls() {
-    const { abiFormatted, methodData } = this.state;
+    const { abi, methodData } = this.state;
     var forms = []; // Each View gets a form
-    if (abiFormatted) {
-      const abiObject = JSON.parse(abiFormatted);
+
+    if (abi) {
+      const abiObject = JSON.parse(abi);
       // check that abi is ready
       abiObject.forEach((method, i) => {
         // Iterate only Views
         if (method.stateMutability === "view") {
-          var formInputs = []; // Building our inputs & outputs
-          var formOutputs = [];
+          var methodInputs = []; // Building our inputs & outputs
+          var methodOutputs = [];
           // If it takes arguments, create form inputs
           method.inputs.forEach((input, j) => {
-            formInputs.push(
+            methodInputs.push(
               <Form.Input
                 name={method.name}
                 inputindex={j}
@@ -265,11 +318,14 @@ class App extends Component {
           });
 
           method.outputs.forEach((output, j) => {
-            let outputData = [];
-            if (methodData[method.name]) {
-              outputData = methodData[method.name].output[j];
-            }
-            formOutputs.push(
+            console.log(
+              `Render method outputs ${i} + ${j}: ${JSON.stringify(
+                methodData[i].outputs
+              )}`
+            );
+            const outputData = methodData[i].outputs[j];
+
+            methodOutputs.push(
               <p key={j}>
                 {`${output.name || "(unnamed)"}
                 ${output.type}: ${outputData}`}
@@ -288,8 +344,8 @@ class App extends Component {
                     <Icon name="refresh" />
                   </Button>
                 </Label>
-                {formInputs}
-                {formOutputs}
+                {methodInputs}
+                {methodOutputs}
               </Form>
             </Segment>
           );
@@ -311,7 +367,7 @@ class App extends Component {
             label="Paste the ABI here:"
             placeholder="ABI"
             name="abi"
-            value={this.state.abi}
+            value={this.state.abiRaw}
             onChange={this.handleChange}
           />
           <Grid columns={2} textAlign="left">
