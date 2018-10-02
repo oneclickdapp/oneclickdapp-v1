@@ -32,34 +32,26 @@ class App extends Component {
     contractAddress: "",
     errorMessage: "",
     loading: false,
-    methodArguments: []
+    methodData: []
   };
 
   handleChange = (e, { name, value }) => this.setState({ [name]: value });
 
   // Takes inputs from the user and stores them to JSON object methodArguments
-  handleArgumentsChange = (e, { name, inputkey, value }) => {
-    var newArguments = this.state.methodArguments;
-    let methodFound = false;
-
-    // Iterate through the array to find the right method
-    newArguments.forEach(method => {
-      if (method.name === name) {
-        methodFound = true;
-        method.inputs[inputkey] = value;
-      }
-    });
-    // Make a new entry if the method doesn't exist.
-    if (!methodFound) {
-      newArguments.push({ name: name, inputs: [] });
-      newArguments[newArguments.length - 1].inputs[inputkey] = value;
+  handleMethodDataChange = (e, { name, key, value }) => {
+    var newMethodData = this.state.methodData;
+    // Check whether the method exists in the arguments list
+    let methodIndex = newMethodData.findIndex(method => method.name === name);
+    // Make a new entry if the method doesn't exist
+    // Only used in case form wasn't properly built during renderInterface()
+    if (methodIndex === -1) {
+      newMethodData.push({ name: name, inputs: [] });
+      // set index to last element in array
+      methodIndex = newMethodData.length - 1;
     }
-    this.setState({ methodArguments: newArguments });
-    console.log(JSON.stringify(this.state.methodArguments));
-  };
-
-  handleSubmitFunction = (e, { name }) => {
-    console.log("submitting function to the blockchain...");
+    newMethodData[methodIndex].inputs[key] = value;
+    this.setState({ methodData: newMethodData });
+    console.log(JSON.stringify(this.state.methodData));
   };
 
   handleSubmitDapp = () => {
@@ -86,26 +78,78 @@ class App extends Component {
     }
   };
 
-  // "Send" functions alter the contract state, and require gas.
-  async handleSubmitFunction() {
-    console.log("Doing function 'send'...");
+  // send() functions alter the contract state, and require gas.
+  handleSubmitMethod = (e, { name }) => {
+    console.log("Performing function 'send()'...");
+    this.setState({ errorMessage: "" });
+    const { methodData, abi, contractAddress } = this.state;
 
-    // try {
-    //   const accounts = await web3.eth.getAccounts();
-    //   await game.methods.register(this.state.name).send({
-    //     from: accounts[0],
-    //     value: entryFee
-    //   });
-    //   // Router.pushRoute("/");
-    //   Router.replaceRoute(`/games/${this.props.gameAddress}`);
-    // } catch (err) {
-    //   this.setState({ errorMessage: err.message });
-    // }
-  }
+    // note: only gets first method. There could be more!
+    // TODO fix this ^
+    const method = methodData.find(method => method.name === name);
+    if (!method) {
+      this.setState({ errorMessage: "You must enter some values" });
+    } else {
+      console.log("method submitted" + JSON.stringify(method));
+      // Generate the contract object
+      // TODO instead use the contract instance created during submitDapp()
+      const myContract = new web3.eth.Contract(
+        JSON.parse(abi),
+        contractAddress
+      );
 
-  // "Call" functions do not alter the contract state. No gas needed.
-  handleSubmitView = () => {
-    console.log("Doing view 'call'...");
+      try {
+        web3.eth.getAccounts().then(accounts => {
+          try {
+            // using "..." to destructure inputs
+            myContract.methods[method.name](...method.inputs).send({
+              from: accounts[0]
+            });
+          } catch (err) {
+            this.setState({ errorMessage: err.message });
+          }
+        });
+      } catch (err) {
+        this.setState({ errorMessage: err.message });
+      }
+    }
+  };
+
+  // call() functions do not alter the contract state. No gas needed.
+  handleSubmitView = (e, { name }) => {
+    console.log("Performing function 'call()'...");
+    this.setState({ errorMessage: "" });
+    const { methodData, abi, contractAddress } = this.state;
+
+    // note: only gets first method. There could be more!
+    // TODO fix to correct method matching correct inputs
+    const method = methodData.find(method => method.name === name);
+    if (!method) {
+      this.setState({ errorMessage: "You must enter some values" });
+    } else {
+      console.log("method submitted" + JSON.stringify(method));
+      // Generate the contract object
+      // TODO use the contract instance created during submitDapp()
+      const myContract = new web3.eth.Contract(
+        JSON.parse(abi),
+        contractAddress
+      );
+
+      try {
+        web3.eth.getAccounts().then(accounts => {
+          try {
+            // using "..." to destructure inputs
+            myContract.methods[method.name](...method.inputs).send({
+              from: accounts[0]
+            });
+          } catch (err) {
+            this.setState({ errorMessage: err.message });
+          }
+        });
+      } catch (err) {
+        this.setState({ errorMessage: err.message });
+      }
+    }
   };
 
   renderInterface() {
@@ -116,7 +160,7 @@ class App extends Component {
             <Header>
               Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
             </Header>
-            {this.renderFunctions()}
+            {this.renderMethods()}
           </Grid.Column>
           <Grid.Column>
             <Header>
@@ -130,133 +174,128 @@ class App extends Component {
     );
   }
 
-  renderFunctions() {
-    var items = [];
+  renderMethods() {
+    var forms = []; // Each Method gets a form
     if (this.state.abiFormatted) {
+      // check that abi is ready
       const abiObject = JSON.parse(this.state.abiFormatted);
-      // Go through all methods
-      abiObject.map((method, i) => {
-        // Only use functions which are not view-only
+      abiObject.forEach((method, i) => {
+        // Iterate only Methods, not Views. NOTE Doesn't get the fallback
         if (method.stateMutability !== "view" && method.type === "function") {
-          const methodName = method.name;
-          // console.log(`# ${methodName}`);
-          // If it has arguments, then make a form
-          if (method.inputs.length) {
-            // console.log(`   Inputs:`);
-            var inputItems = [];
-            method.inputs.map((input, j) => {
-              // console.log(`    ${input.type} ${input.name} key: ${j}`);
-              inputItems.push(
-                <Form.Input
-                  name={methodName}
-                  key={j}
-                  inputkey={j}
-                  // value={this.state.methodArguments[]}
-                  inline
-                  label={input.name}
-                  placeholder={input.type}
-                  onChange={this.handleArgumentsChange}
-                />
-              );
-            });
-            items.push(
-              <Segment textAlign="left" key={i}>
-                <Header textAlign="center">
-                  {method.name}
-                  <Header.Subheader>function</Header.Subheader>
-                </Header>
-                <Form key={i} onSubmit={this.handleSubmitFunction}>
-                  {inputItems}
-                  <Form.Button color="blue" content="Submit" />
-                </Form>
-              </Segment>
+          var formInputs = []; // Building our individual inputs
+          var methodTypeHelperText = "function without arguments"; // Default function
+          // If it takes arguments, create form inputs
+          // console.log(`   Inputs:`);
+          method.inputs.forEach((input, j) => {
+            // console.log(`    ${input.type} ${input.name} key: ${j}`);
+            methodTypeHelperText = "function";
+            formInputs.push(
+              <Form.Input
+                name={method.name}
+                key={j}
+                inline
+                label={input.name}
+                placeholder={input.type}
+                onChange={this.handleMethodDataChange}
+              />
             );
-          }
-          // TODO incorporate payable function together with regular function
+          });
           // If it doesn't have arguments, but is payable, then make a form
-          else if (method.payable) {
+          if (method.payable) {
             // console.log(`   Inputs: (payable)`);
-            // Make an input form with a value
-            items.push(
-              <Segment textAlign="left" key={i}>
-                <Header textAlign="center">
-                  {method.name}
-                  <Header.Subheader>payable function</Header.Subheader>
-                </Header>
-
-                <Form onSubmit={this.handleSubmitFunction}>
-                  <Form.Input
-                    inline
-                    label={`Amount in ETH`}
-                    placeholder="value"
-                  />
-                  <Form.Button color="blue" content="Submit" />
-                </Form>
-              </Segment>
+            methodTypeHelperText = "payable function";
+            formInputs.push(
+              <Form.Input
+                key={i}
+                name={method.name}
+                inline
+                label={`Amount in ETH`}
+                placeholder="value"
+                onChange={this.handleMethodDataChange}
+              />
             );
           }
-          // If it doesn't have arguments, and is not payable, then make a button
-          else {
-            // console.log(`   Inputs: (non-payable)`);
-            items.push(
-              <Segment textAlign="left" key={i}>
-                <Header textAlign="center">
-                  {method.name}
-                  <Header.Subheader>function without inputs</Header.Subheader>
-                </Header>
-                <Form onSubmit={this.handleSubmitFunction}>
-                  <Button color="blue" content="Go" />
-                </Form>
-              </Segment>
-            );
-          }
+          forms.push(
+            // Make a form, even when there are no inputs
+            <Segment textAlign="left" key={i}>
+              <Header textAlign="center">
+                {method.name}
+                <Header.Subheader>{methodTypeHelperText} </Header.Subheader>
+              </Header>
+              <Form
+                onSubmit={this.handleSubmitMethod}
+                name={method.name}
+                key={i}
+              >
+                {formInputs}
+                <Form.Button color="blue" content="Submit" />
+              </Form>
+            </Segment>
+          );
         }
       });
     }
-    return <div>{items}</div>;
+    return <div>{forms}</div>;
   }
 
   renderViews() {
-    var items = [];
-    if (this.state.abiFormatted) {
-      const abiObject = JSON.parse(this.state.abiFormatted);
-      // Build the input form
-      abiObject.map((method, i) => {
+    const { abiFormatted, methodData } = this.state;
+    var forms = []; // Each View gets a form
+    if (abiFormatted) {
+      const abiObject = JSON.parse(abiFormatted);
+      // check that abi is ready
+      abiObject.forEach((method, i) => {
+        // Iterate only Views
         if (method.stateMutability === "view") {
-          // console.log(`%% VIEW ${method.name}`);
-          if (method.outputs.length) {
-            // console.log(`   Outputs:`);
-            var outputItems = [];
-            method.outputs.map((output, j) => {
-              // console.log(`    ${output.type} ${output.name}`);
-              let name = output.name || "(unnamed)";
-              outputItems.push(
-                <p key={j}>
-                  {`${name}
-                  ${output.type}`}
-                </p>
-              );
-            });
-            items.push(
-              <Segment textAlign="left" key={i}>
-                <Header textAlign="center">
-                  {method.name}
-                  <Header.Subheader>payable function</Header.Subheader>
-                </Header>
+          var formInputs = []; // Building our inputs & outputs
+          var formOutputs = [];
+          // If it takes arguments, create form inputs
+          method.inputs.forEach((input, j) => {
+            formInputs.push(
+              <Form.Input
+                name={method.name}
+                key={j}
+                inline
+                label={input.name}
+                placeholder={input.type}
+                onChange={this.handleMethodDataChange}
+              />
+            );
+          });
+
+          method.outputs.forEach((output, j) => {
+            let outputData = [];
+            if (methodData[method.name]) {
+              outputData = methodData[method.name].output[j];
+            }
+            formOutputs.push(
+              <p key={j}>
+                {`${output.name || "(unnamed)"}
+                ${output.type}: ${outputData}`}
+              </p>
+            );
+          });
+          forms.push(
+            <Segment textAlign="left" key={i}>
+              <Header textAlign="center">
+                {method.name}
+                <Header.Subheader>View</Header.Subheader>
+              </Header>
+              <Form onSubmit={this.handleSubmitView} name={method.name} key={i}>
                 <Label basic image attached="top right">
                   <Button floated="right" icon>
                     <Icon name="refresh" />
                   </Button>
                 </Label>
-
-                {outputItems}
-              </Segment>
-            );
-          }
+                {formInputs}
+                {formOutputs}
+              </Form>
+            </Segment>
+          );
         }
       });
     }
-    return <div>{items}</div>;
+    return <div>{forms}</div>;
   }
 
   renderDappForm() {
