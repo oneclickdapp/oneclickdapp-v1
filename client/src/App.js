@@ -232,62 +232,80 @@ class App extends Component {
     var forms = []; // Each Method gets a form
     if (this.state.abi) {
       // check that abi is ready
-      const abiObject = JSON.parse(this.state.abi);
-      abiObject.forEach((method, i) => {
-        // Iterate only Methods, not Views. NOTE Doesn't get the fallback
-        if (method.stateMutability !== "view" && method.type === "function") {
-          var formInputs = []; // Building our individual inputs
-          var methodTypeHelperText = "function without arguments"; // Default function
-          // If it takes arguments, create form inputs
-          // console.log(`   Inputs:`);
-          method.inputs.forEach((input, j) => {
-            // console.log(`    ${input.type} ${input.name} key: ${j}`);
-            methodTypeHelperText = "function";
-            formInputs.push(
-              <Form.Input
-                name={method.name}
-                key={j}
-                inputindex={j}
-                inline
-                label={input.name}
-                placeholder={input.type}
-                onChange={this.handleMethodDataChange}
-              />
-            );
-          });
-          // If it doesn't have arguments, but is payable, then make a form
-          if (method.payable) {
-            // console.log(`   Inputs: (payable)`);
-            methodTypeHelperText = "payable function";
-            formInputs.push(
-              <Form.Input
-                key={i}
-                inputindex={i}
-                name={method.name}
-                inline
-                label={`Amount in ETH`}
-                placeholder="value"
-                onChange={this.handleMethodDataChange}
-              />
+      try {
+        const abiObject = JSON.parse(this.state.abi);
+        abiObject.forEach((method, i) => {
+          // Iterate only Methods, not Views. NOTE Doesn't get the fallback
+          if (method.stateMutability !== "view" && method.type === "function") {
+            var formInputs = []; // Building our individual inputs
+            var methodTypeHelperText = "function without arguments"; // Default function
+            // If it takes arguments, create form inputs
+            // console.log(`   Inputs:`);
+            method.inputs.forEach((input, j) => {
+              // console.log(`    ${input.type} ${input.name} key: ${j}`);
+              methodTypeHelperText = "function";
+              formInputs.push(
+                <Form.Input
+                  name={method.name}
+                  key={j}
+                  inputindex={j}
+                  inline
+                  label={input.name}
+                  placeholder={input.type}
+                  onChange={this.handleMethodDataChange}
+                />
+              );
+            });
+            // If it doesn't have arguments, but is payable, then make a form
+            if (method.payable) {
+              // console.log(`   Inputs: (payable)`);
+              methodTypeHelperText = "payable function";
+              formInputs.push(
+                <Form.Input
+                  key={i}
+                  inputindex={i}
+                  name={method.name}
+                  inline
+                  label={`Amount in ETH`}
+                  placeholder="value"
+                  onChange={this.handleMethodDataChange}
+                />
+              );
+            }
+            forms.push(
+              // Make a form, even when there are no inputs
+              <Segment textAlign="left" key={i}>
+                <Header textAlign="center">
+                  {method.name}
+                  <Header.Subheader>{methodTypeHelperText} </Header.Subheader>
+                </Header>
+                <Form
+                  onSubmit={this.handleSubmitSend}
+                  name={method.name}
+                  key={i}
+                >
+                  {formInputs}
+                  <Form.Button color="blue" content="Submit" />
+                </Form>
+              </Segment>
             );
           }
-          forms.push(
-            // Make a form, even when there are no inputs
-            <Segment textAlign="left" key={i}>
-              <Header textAlign="center">
-                {method.name}
-                <Header.Subheader>{methodTypeHelperText} </Header.Subheader>
-              </Header>
-              <Form onSubmit={this.handleSubmitSend} name={method.name} key={i}>
-                {formInputs}
-                <Form.Button color="blue" content="Submit" />
-              </Form>
-            </Segment>
-          );
-        }
-      });
+        });
+
+        return <div>{forms}</div>;
+      } catch (e) {
+        return (
+          <div>
+            <h2>
+              Invalid ABI Format, please read more about ABI{" "}
+              <a href="https://solidity.readthedocs.io/en/develop/abi-spec.html">
+                here.
+              </a>
+            </h2>
+          </div>
+        );
+      }
     }
-    return <div>{forms}</div>;
   }
 
   renderCalls() {
