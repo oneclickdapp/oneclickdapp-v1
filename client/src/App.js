@@ -52,8 +52,8 @@ class App extends Component {
   componentDidMount = () => {
     if (this.loadExistingContract()) {
       // TODO wait until setState is finished before continuing
-      this.handleSubmitDapp();
     }
+    this.parseABI;
   };
 
   loadExistingContract = () => {
@@ -80,25 +80,19 @@ class App extends Component {
     }
   };
 
-  handleChange = (e, { name, value }) => this.setState({ [name]: value });
-
-  // Takes inputs from the user and stores them to JSON object methodArguments
-  handleMethodDataChange = (e, { name, value, inputindex }) => {
-    let newMethodData = this.state.methodData;
-    const methodIndex = newMethodData.findIndex(method => method.name === name);
-    newMethodData[methodIndex].inputs[inputindex] = value;
-    this.setState({ methodData: newMethodData });
-    // console.log(JSON.stringify(this.state.methodData));
+  handleChange = (e, { name, value }) => {
+    this.setState({ [name]: value });
   };
 
-  handleSubmitDapp = () => {
-    const { abiRaw, contractAddress } = this.state;
+  handleChangeABI = (e, { name, value }) => {
+    this.setState({ abiRaw: value });
+    const { contractAddress } = this.state;
     this.setState({ errorMessage: "", abi: "" });
 
-    console.log("Creating DApp...");
+    console.log("Parsing ABI...");
     // Check for proper formatting and create a new contract instance
     try {
-      const abiObject = JSON.parse(abiRaw);
+      const abiObject = JSON.parse(value);
       const myContract = new web3.eth.Contract(abiObject, contractAddress);
       // Save the formatted abi for use in renderInterface()
       this.setState({
@@ -111,6 +105,22 @@ class App extends Component {
       });
       return;
     }
+  };
+
+  // Takes inputs from the user and stores them to JSON object methodArguments
+  handleMethodDataChange = (e, { name, value, inputindex }) => {
+    let newMethodData = this.state.methodData;
+    const methodIndex = newMethodData.findIndex(method => method.name === name);
+    newMethodData[methodIndex].inputs[inputindex] = value;
+    this.setState({ methodData: newMethodData });
+    // console.log(JSON.stringify(this.state.methodData));
+  };
+
+  parseABI = () => {};
+
+  handleGenerateURL = () => {
+    console.log("Generating unique URL...");
+    // Check for proper formatting and create a new contract
   };
 
   // send() methods alter the contract state, and require gas.
@@ -313,62 +323,70 @@ class App extends Component {
     var forms = []; // Each View gets a form
 
     if (abi) {
-      const abiObject = JSON.parse(abi);
-      // check that abi is ready
-      abiObject.forEach((method, i) => {
-        // Iterate only Views
-        if (method.stateMutability === "view") {
-          var methodInputs = []; // Building our inputs & outputs
-          var methodOutputs = [];
-          // If it takes arguments, create form inputs
-          method.inputs.forEach((input, j) => {
-            methodInputs.push(
-              <Form.Input
-                name={method.name}
-                inputindex={j}
-                key={j}
-                inline
-                label={input.name}
-                placeholder={input.type}
-                onChange={this.handleMethodDataChange}
-              />
-            );
-          });
+      try {
+        const abiObject = JSON.parse(abi);
+        // check that abi is ready
+        abiObject.forEach((method, i) => {
+          // Iterate only Views
+          if (method.stateMutability === "view") {
+            var methodInputs = []; // Building our inputs & outputs
+            var methodOutputs = [];
+            // If it takes arguments, create form inputs
+            method.inputs.forEach((input, j) => {
+              methodInputs.push(
+                <Form.Input
+                  name={method.name}
+                  inputindex={j}
+                  key={j}
+                  inline
+                  label={input.name}
+                  placeholder={input.type}
+                  onChange={this.handleMethodDataChange}
+                />
+              );
+            });
 
-          method.outputs.forEach((output, j) => {
-            console.log(
-              `Render method outputs ${i} + ${j}: ${JSON.stringify(
-                methodData[i].outputs
-              )}`
-            );
-            const outputData = methodData[i].outputs[j];
+            method.outputs.forEach((output, j) => {
+              // console.log(
+              //   `Render method outputs ${i} + ${j}: ${JSON.stringify(
+              //     methodData[i].outputs
+              //   )}`
+              // );
+              const outputData = methodData[i].outputs[j];
 
-            methodOutputs.push(
-              <p key={j}>
-                {`${output.name || "(unnamed)"}
+              methodOutputs.push(
+                <p key={j}>
+                  {`${output.name || "(unnamed)"}
                 ${output.type}: ${outputData}`}
-              </p>
+                </p>
+              );
+            });
+            forms.push(
+              <Segment textAlign="left" key={i}>
+                <Header textAlign="center">
+                  {method.name}
+                  <Header.Subheader>View</Header.Subheader>
+                </Header>
+                <Form
+                  onSubmit={this.handleSubmitCall}
+                  name={method.name}
+                  key={i}
+                >
+                  <Label basic image attached="top right">
+                    <Button floated="right" icon>
+                      <Icon name="refresh" />
+                    </Button>
+                  </Label>
+                  {methodInputs}
+                  {methodOutputs}
+                </Form>
+              </Segment>
             );
-          });
-          forms.push(
-            <Segment textAlign="left" key={i}>
-              <Header textAlign="center">
-                {method.name}
-                <Header.Subheader>View</Header.Subheader>
-              </Header>
-              <Form onSubmit={this.handleSubmitCall} name={method.name} key={i}>
-                <Label basic image attached="top right">
-                  <Button floated="right" icon>
-                    <Icon name="refresh" />
-                  </Button>
-                </Label>
-                {methodInputs}
-                {methodOutputs}
-              </Form>
-            </Segment>
-          );
-        }
-      });
+          }
+        });
+      } catch (e) {
+        return null;
+      }
     }
     return <div>{forms}</div>;
   }
@@ -378,15 +396,15 @@ class App extends Component {
       <Segment textAlign="left">
         <Form
           error={!!this.state.errorMessage}
-          onSubmit={this.handleSubmitDapp}
+          onSubmit={this.handleGenerateURL}
         >
           <Form.TextArea
             inline
             label="Paste the ABI here:"
             placeholder="ABI"
-            name="abi"
+            name="abiRaw"
             value={this.state.abiRaw}
-            onChange={this.handleChange}
+            onChange={this.handleChangeABI}
           />
           <Grid columns={2} textAlign="left">
             <Grid.Column>
@@ -416,7 +434,7 @@ class App extends Component {
               />
             </Grid.Column>
             <Grid.Column textAlign="center" verticalAlign="bottom">
-              <Button color="green" content="DApp it up!" />
+              <Button color="green" content="Get Shareable Link" />
             </Grid.Column>
           </Grid>
           <Message error header="Oops!" content={this.state.errorMessage} />
