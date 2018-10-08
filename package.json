@@ -12,10 +12,11 @@
     "client": "node start-client.js"
   },
   "dependencies": {
-    "express": "^4.16.3",
     "body-parser": "^1.18.3",
+    "express": "^4.16.3",
     "fs": "0.0.2",
     "lodash": "^4.17.10",
+    "mngen": "^1.1.0",
     "mongodb": "^2.2.36",
     "mongoose": "^5.2.4"
   },

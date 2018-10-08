@@ -36,48 +36,31 @@ class App extends Component {
     contractAddress: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d",
     errorMessage: "",
     loading: false,
-    methodData: []
+    methodData: [],
+    contractName: "",
+    mnemonic: ""
   };
 
-  static async getInitialProps(props) {
-    // TODO get the mnemonic stored in the URL
-    // Unsure if this works >>
-    let mnemonic = props.query.address;
-    mnemonic = ""; // delete line once working
-    console.log("Mnemonic: " + mnemonic);
-    return { mnemonic };
-  }
-
-  // If the contract data is found, then create the DApp!
   componentDidMount = () => {
-    if (this.loadExistingContract()) {
-      // TODO wait until setState is finished before continuing
-    }
-    this.parseABI;
+    this.loadExistingContract();
   };
 
   loadExistingContract = () => {
-    // TODO fetch contract data from server using the unique mnemonic
-    // TODO Build server to store the data
-    // This does not work currently >>
-    const { mnemonic } = this.props;
-    axios.get(`./contracts/${mnemonic}`).then(function(result) {
-      this.setState({
-        abiRaw: result.data
+    const mnemonic = window.location.pathname;
+    axios
+      .get(`./contracts/${mnemonic}`)
+      .then(result => {
+        this.setState({
+          abiRaw: result.data.abi || "",
+          network: result.data.network || "",
+          contractName: result.data.contractName || "",
+          contractAddress: result.data.contractAddress || "",
+          mnemonic: mnemonic
+        });
+      })
+      .catch(function(err) {
+        console.log(err);
       });
-    });
-
-    try {
-      // TODO check that the JSON data is valid
-      // const isValid = JSON.parse(sampleABI); // Turn off to prevent error
-      // If successful: abiRaw -> submitDapp()
-      this.setState({ abiRaw: JSON.stringify(sampleABI) });
-      return true;
-    } catch (e) {
-      console.log("Existing contract not found, or improper JSON format.");
-      console.log(e);
-      return false;
-    }
   };
 
   handleChange = (e, { name, value }) => {
@@ -116,11 +99,24 @@ class App extends Component {
     // console.log(JSON.stringify(this.state.methodData));
   };
 
-  parseABI = () => {};
-
   handleGenerateURL = () => {
-    console.log("Generating unique URL...");
-    // Check for proper formatting and create a new contract
+    const { contractName, contractAddress, abi, network } = this.state;
+    console.log("Generating unique URL..." + contractAddress);
+    axios
+      .post(`/contracts`, {
+        contractName,
+        contractAddress,
+        abi,
+        network
+      })
+      .then(res => {
+        //TODO navigate to new mnemonic instead of setState
+        //Router.replaceRoute(`/${res.data.mnemonic}`);
+        this.setState({ mnemonic: res.data.mnemonic });
+      })
+      .catch(err => {
+        console.log(err);
+      });
   };
 
   // send() methods alter the contract state, and require gas.
@@ -398,6 +394,14 @@ class App extends Component {
           error={!!this.state.errorMessage}
           onSubmit={this.handleGenerateURL}
         >
+          <Form.Input
+            inline
+            name="contractName"
+            label="DApp name"
+            placeholder="(optional)"
+            value={this.state.contractName}
+            onChange={this.handleChange}
+          />
           <Form.TextArea
             inline
             label="Paste the ABI here:"
@@ -427,7 +431,7 @@ class App extends Component {
               <Form.Input
                 inline
                 name="contractAddress"
-                label="Contract"
+                label="Contract address"
                 placeholder="0xab123..."
                 value={this.state.contractAddress}
                 onChange={this.handleChange}
@@ -435,6 +439,7 @@ class App extends Component {
             </Grid.Column>
             <Grid.Column textAlign="center" verticalAlign="bottom">
               <Button color="green" content="Get Shareable Link" />
+              <p>makeadapp.com{this.state.mnemonic || "/ ..."}</p>
             </Grid.Column>
           </Grid>
           <Message error header="Oops!" content={this.state.errorMessage} />

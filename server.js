@@ -7,7 +7,9 @@ const { ObjectID } = require("mongodb");
 
 require("./db/config");
 var { mongoose } = require("./db/mongoose");
-var { Provider } = require("./models/Contract");
+var { Contract } = require("./models/Contract");
+
+var mnGen = require("mngen"); // Random word generator
 
 var app = express();
 
@@ -21,19 +23,27 @@ if (process.env.NODE_ENV === "production") {
 app.use(bodyParser.json());
 
 app.post("/contracts", (req, res) => {
-  const name = req.body.name;
+  const contractName = req.body.contractName;
   const abi = req.body.abi;
-  const address = req.body.address;
+  const contractAddress = req.body.contractAddress;
   const network = req.body.network;
+
+  // Generate the mnemonic word for the URL
+  const mnemonic = mnGen.word(3);
 
   console.log(" ");
   console.log("################## POST Contract  #####################");
-  console.log(`Name: ${name}, network: ${network}, address: ${address}`);
+  console.log(
+    `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
+  );
+  console.log(`URL: www.makeadapp.com/${mnemonic}`);
+
   var contract = new Contract({
-    name: name,
+    contractName: contractName,
     abi: abi,
-    address: address,
-    network: network
+    contractAddress: contractAddress,
+    network: network,
+    mnemonic: mnemonic
   });
 
   contract.save().then(
@@ -46,8 +56,34 @@ app.post("/contracts", (req, res) => {
   );
 });
 
-app.patch("/contracts", (req, res) => {
-  // do something
+app.get("/contracts/:mnemonic", (req, res) => {
+  var mnemonic = req.params.mnemonic.toLowerCase();
+  console.log(" ");
+  console.log("################## GET CALL  #####################");
+  console.log(`Retrieving contract for mnemonic: ${mnemonic}`);
+
+  Contract.find({ mnemonic: mnemonic })
+    .then(contractArray => {
+      if (contractArray.length) {
+        var myContract = contractArray[0];
+        const contractName = myContract.contractName;
+        const abi = myContract.abi;
+        const contractAddress = myContract.contractAddress;
+        const network = myContract.network;
+        res.send({
+          contractName,
+          abi,
+          contractAddress,
+          network
+        });
+      } else {
+        res.status(400).send(`Contract not found: ${mnemonic}`);
+        return;
+      }
+    })
+    .catch(function(err) {
+      console.log(err.err);
+    });
 });
 
 app.listen(app.get("port"), () => {
