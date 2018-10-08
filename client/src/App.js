@@ -70,22 +70,24 @@ class App extends Component {
     this.setState({ abiRaw: value });
     const { contractAddress } = this.state;
     this.setState({ errorMessage: "", abi: "" });
-
-    console.log("Parsing ABI...");
-    // Check for proper formatting and create a new contract instance
-    try {
-      const abiObject = JSON.parse(value);
-      const myContract = new web3.eth.Contract(abiObject, contractAddress);
-      // Save the formatted abi for use in renderInterface()
-      this.setState({
-        abi: JSON.stringify(myContract.options.jsonInterface)
-      });
-      abiObject.forEach(method => this.createMethodData(method.name));
-    } catch (err) {
-      this.setState({
-        errorMessage: err.message
-      });
-      return;
+    if (value) {
+      // Don't run unless there is some text present
+      console.log("Parsing ABI...");
+      // Check for proper formatting and create a new contract instance
+      try {
+        const abiObject = JSON.parse(value);
+        const myContract = new web3.eth.Contract(abiObject, contractAddress);
+        // Save the formatted abi for use in renderInterface()
+        this.setState({
+          abi: JSON.stringify(myContract.options.jsonInterface)
+        });
+        abiObject.forEach(method => this.createMethodData(method.name));
+      } catch (err) {
+        this.setState({
+          errorMessage: err.message
+        });
+        return;
+      }
     }
   };
 
