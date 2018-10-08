@@ -23,7 +23,6 @@ import sampleABI from "./ethereum/sampleABI";
 
 // Components
 import web3 from "./ethereum/web3";
-import ErrorBoundary from "./components/ErrorBoundary";
 
 // Using axios to fetch existing JSON contract data
 const axios = require("axios");
@@ -32,12 +31,12 @@ class App extends Component {
   state = {
     abi: "",
     abiRaw: JSON.stringify(sampleABI),
-    network: "",
+    network: "Ropsten",
     contractAddress: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d",
     errorMessage: "",
     loading: false,
     methodData: [],
-    contractName: "",
+    contractName: "ETH Splitter Tool (example)",
     mnemonic: ""
   };
 
@@ -51,7 +50,7 @@ class App extends Component {
       .get(`./contracts/${mnemonic}`)
       .then(result => {
         this.setState({
-          abiRaw: result.data.abi || "",
+          abiRaw: JSON.stringify(result.data.abi) || "",
           network: result.data.network || "",
           contractName: result.data.contractName || "",
           contractAddress: result.data.contractAddress || "",
@@ -100,7 +99,8 @@ class App extends Component {
   };
 
   handleGenerateURL = () => {
-    const { contractName, contractAddress, abi, network } = this.state;
+    const { contractName, contractAddress, abiRaw, network } = this.state;
+    const abi = JSON.parse(abiRaw);
     console.log("Generating unique URL..." + contractAddress);
     axios
       .post(`/contracts`, {
@@ -213,23 +213,21 @@ class App extends Component {
   renderInterface() {
     return (
       <div>
-        <ErrorBoundary>
-          <Grid columns={2}>
-            <Grid.Column>
-              <Header>
-                Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
-              </Header>
-              {this.renderSends()}
-            </Grid.Column>
-            <Grid.Column>
-              <Header>
-                Views
-                <Header.Subheader>(free, read-only)</Header.Subheader>
-              </Header>
-              {this.renderCalls()}
-            </Grid.Column>
-          </Grid>
-        </ErrorBoundary>
+        <Grid columns={2}>
+          <Grid.Column>
+            <Header>
+              Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
+            </Header>
+            {this.renderSends()}
+          </Grid.Column>
+          <Grid.Column>
+            <Header>
+              Views
+              <Header.Subheader>(free, read-only)</Header.Subheader>
+            </Header>
+            {this.renderCalls()}
+          </Grid.Column>
+        </Grid>
       </div>
     );
   }
@@ -394,28 +392,38 @@ class App extends Component {
           error={!!this.state.errorMessage}
           onSubmit={this.handleGenerateURL}
         >
-          <Form.Input
-            inline
-            name="contractName"
-            label="DApp name"
-            placeholder="(optional)"
-            value={this.state.contractName}
-            onChange={this.handleChange}
-          />
-          <Form.TextArea
-            inline
-            label="Paste the ABI here:"
-            placeholder="ABI"
-            name="abiRaw"
-            value={this.state.abiRaw}
-            onChange={this.handleChangeABI}
-          />
-          <Grid columns={2} textAlign="left">
+          <Grid columns={2}>
             <Grid.Column>
+              <Form.Input
+                inline
+                name="contractName"
+                label="DApp name"
+                placeholder="(optional)"
+                value={this.state.contractName}
+                onChange={this.handleChange}
+              />
+              <Form.TextArea
+                label="ABI (application binary interface)"
+                placeholder="ABI"
+                name="abiRaw"
+                value={this.state.abiRaw}
+                onChange={this.handleChangeABI}
+              />
+            </Grid.Column>
+            <Grid.Column>
+              <Form.Input
+                inline
+                name="contractAddress"
+                label="Contract address"
+                placeholder="0xab123..."
+                value={this.state.contractAddress}
+                onChange={this.handleChange}
+              />
               <Form.Input inline label="Network">
                 <Form.Dropdown
                   placeholder="Main, Ropsten, Rinkeby ..."
                   selection
+                  inline
                   name="network"
                   onChange={this.handleChange}
                   options={[
@@ -428,16 +436,6 @@ class App extends Component {
                   value={this.state.network}
                 />
               </Form.Input>
-              <Form.Input
-                inline
-                name="contractAddress"
-                label="Contract address"
-                placeholder="0xab123..."
-                value={this.state.contractAddress}
-                onChange={this.handleChange}
-              />
-            </Grid.Column>
-            <Grid.Column textAlign="center" verticalAlign="bottom">
               <Button color="green" content="Get Shareable Link" />
               <p>makeadapp.com{this.state.mnemonic || "/ ..."}</p>
             </Grid.Column>
