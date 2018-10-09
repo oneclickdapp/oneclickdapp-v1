@@ -2,10 +2,10 @@
 const _ = require("lodash");
 const express = require("express");
 
+// Database toolds
 const bodyParser = require("body-parser");
-const { ObjectID } = require("mongodb");
 
-require("./db/config");
+require("./db/config"); // Database login secrets
 var { mongoose } = require("./db/mongoose");
 var { Contract } = require("./models/Contract");
 
