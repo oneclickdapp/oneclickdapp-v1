@@ -34,6 +34,7 @@ class App extends Component {
     network: "Ropsten",
     contractAddress: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d",
     errorMessage: "",
+    errorMessageView: "",
     loading: false,
     methodData: [],
     contractName: "ETH Splitter Tool (example)",
@@ -163,41 +164,30 @@ class App extends Component {
   handleSubmitCall = (e, { name }) => {
     const { abi, contractAddress, methodData } = this.state;
     let newMethodData = methodData;
-
     this.setState({ errorMessage: "" });
-
-    console.log(`${name}.call()`);
-    // note: only gets first method. There could be more!
+    // note: only gets first method. There could be more with identical name
     // TODO fix this ^
-    const method = methodData.find(method => method.name === name);
-    // return an empty array if no inputs exist
-    let inputs = method.inputs || [];
-
+    const methodIndex = methodData.findIndex(method => method.name === name);
+    const method = methodData[methodIndex];
+    let inputs = method.inputs || []; // return an empty array if no inputs exist
     // Generate the contract object
-    // TODO use the contract instance created during submitDapp()
+    // TODO instead use the contract instance created during submitDapp()
     const myContract = new web3.eth.Contract(JSON.parse(abi), contractAddress);
-
     try {
       // using "..." to destructure inputs[]
       myContract.methods[name](...inputs)
         .call()
         .then(response => {
-          console.log(`call response: ${JSON.stringify(response)}`);
-          const methodIndex = methodData.findIndex(
-            method => method.name === name
-          );
-          // if (response.length > 1) {
-          console.log("more than one response");
-          response.forEach((output, index) => {
-            newMethodData[methodIndex].outputs[index] = response;
-          });
-          console.log(`Call methodData outputs ${methodIndex}: `);
-          // } else newMethodData[methodIndex].outputs[0] = response;
+          if (typeof response === "object") {
+            Object.entries(response).forEach(
+              ([key, value]) =>
+                (newMethodData[methodIndex].outputs[key] = value)
+            );
+          } else newMethodData[methodIndex].outputs[0] = response;
+          this.setState({ methodData: newMethodData });
         });
-      // Update with new output data
-      this.setState({ methodData: newMethodData });
     } catch (err) {
-      this.setState({ errorMessage: err.message });
+      this.setState({ errorMessageView: err.message });
     }
   };
 
@@ -216,7 +206,7 @@ class App extends Component {
   renderInterface() {
     return (
       <div>
-        <Grid columns={2}>
+        <Grid stackable columns={2}>
           <Grid.Column>
             <Header>
               Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
@@ -344,17 +334,12 @@ class App extends Component {
             });
 
             method.outputs.forEach((output, j) => {
-              // console.log(
-              //   `Render method outputs ${i} + ${j}: ${JSON.stringify(
-              //     methodData[i].outputs
-              //   )}`
-              // );
               const outputData = methodData[i].outputs[j];
 
               methodOutputs.push(
                 <p key={j}>
                   {`${output.name || "(unnamed)"}
-                ${output.type}: ${outputData}`}
+                ${output.type}: ${outputData || ""}`}
                 </p>
               );
             });
@@ -369,11 +354,9 @@ class App extends Component {
                   name={method.name}
                   key={i}
                 >
-                  <Label basic image attached="top right">
-                    <Button floated="right" icon>
-                      <Icon name="refresh" />
-                    </Button>
-                  </Label>
+                  <Button floated="right" icon>
+                    <Icon name="refresh" />
+                  </Button>
                   {methodInputs}
                   {methodOutputs}
                 </Form>
@@ -395,7 +378,7 @@ class App extends Component {
           error={!!this.state.errorMessage}
           onSubmit={this.handleGenerateURL}
         >
-          <Grid columns={2}>
+          <Grid stackable columns={2}>
             <Grid.Column>
               <Form.Input
                 inline
