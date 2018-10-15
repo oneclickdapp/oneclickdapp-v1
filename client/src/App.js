@@ -40,7 +40,7 @@ class App extends Component {
     mnemonic: ""
   };
 
-  componentDidMount = () => {
+  componentDidMount = async () => {
     this.loadExistingContract();
   };
 
@@ -50,12 +50,15 @@ class App extends Component {
       .get(`./contracts/${mnemonic}`)
       .then(result => {
         this.setState({
-          abiRaw: JSON.stringify(result.data.abi) || "",
           network: result.data.network || "",
           contractName: result.data.contractName || "",
           contractAddress: result.data.contractAddress || "",
           mnemonic: mnemonic
         });
+        this.handleChangeABI(
+          {},
+          { value: JSON.stringify(result.data.abi) || "" }
+        );
       })
       .catch(function(err) {
         console.log(err);
@@ -66,13 +69,12 @@ class App extends Component {
     this.setState({ [name]: value });
   };
 
-  handleChangeABI = (e, { name, value }) => {
+  handleChangeABI = (e, { value }) => {
     this.setState({ abiRaw: value });
     const { contractAddress } = this.state;
     this.setState({ errorMessage: "", abi: "" });
     if (value) {
       // Don't run unless there is some text present
-      console.log("Parsing ABI...");
       // Check for proper formatting and create a new contract instance
       try {
         const abiObject = JSON.parse(value);
@@ -112,13 +114,12 @@ class App extends Component {
         network
       })
       .then(res => {
-        //TODO navigate to new mnemonic instead of setState
-        //Router.replaceRoute(`/${res.data.mnemonic}`);
-        this.setState({ mnemonic: res.data.mnemonic });
+        window.location.pathname = res.data.mnemonic;
       })
       .catch(err => {
         console.log(err);
-      });
+      })
+      .then(res => {});
   };
 
   // send() methods alter the contract state, and require gas.
@@ -407,7 +408,6 @@ class App extends Component {
               <Form.TextArea
                 label="ABI (application binary interface)"
                 placeholder="ABI"
-                name="abiRaw"
                 value={this.state.abiRaw}
                 onChange={this.handleChangeABI}
               />
