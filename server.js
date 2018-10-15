@@ -82,6 +82,7 @@ app.get("/contracts/:mnemonic", (req, res) => {
       }
     })
     .catch(function(err) {
+      res.status(400).send(`Contract not found: ${mnemonic}`);
       console.log(err.err);
     });
 });

@@ -31,13 +31,13 @@ class App extends Component {
   state = {
     abi: "",
     abiRaw: JSON.stringify(sampleABI),
-    network: "Ropsten",
+    network: "Main",
     contractAddress: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d",
     errorMessage: "",
     errorMessageView: "",
     loading: false,
     methodData: [],
-    contractName: "ETH Splitter Tool (example)",
+    contractName: "CryptoKitties",
     mnemonic: ""
   };
 
@@ -47,23 +47,25 @@ class App extends Component {
 
   loadExistingContract = () => {
     const mnemonic = window.location.pathname;
-    axios
-      .get(`./contracts/${mnemonic}`)
-      .then(result => {
-        this.setState({
-          network: result.data.network || "",
-          contractName: result.data.contractName || "",
-          contractAddress: result.data.contractAddress || "",
-          mnemonic: mnemonic
+    if (mnemonic.length > 1) {
+      axios
+        .get(`./contracts/${mnemonic}`)
+        .then(result => {
+          this.setState({
+            network: result.data.network || "",
+            contractName: result.data.contractName || "",
+            contractAddress: result.data.contractAddress || "",
+            mnemonic: mnemonic
+          });
+          this.handleChangeABI(
+            {},
+            { value: JSON.stringify(result.data.abi) || "" }
+          );
+        })
+        .catch(function(err) {
+          console.log(err);
         });
-        this.handleChangeABI(
-          {},
-          { value: JSON.stringify(result.data.abi) || "" }
-        );
-      })
-      .catch(function(err) {
-        console.log(err);
-      });
+    }
   };
 
   handleChange = (e, { name, value }) => {
@@ -422,7 +424,9 @@ class App extends Component {
                 />
               </Form.Input>
               <Button color="green" content="Get Shareable Link" />
-              <p>makeadapp.com{this.state.mnemonic || "/ ..."}</p>
+              <a href={`OneClickDApp.com${this.state.mnemonic}`}>
+                OneClickDApp.com{this.state.mnemonic || "/ ..."}
+              </a>
             </Grid.Column>
           </Grid>
           <Message error header="Oops!" content={this.state.errorMessage} />
@@ -439,7 +443,7 @@ class App extends Component {
     return (
       <div className="App">
         <header className="App-header">
-          <h1 className="App-title">One-Click DApp</h1>
+          <h1 className="App-title">One Click DApp</h1>
         </header>
         {this.renderDappForm()}
         {this.renderInterface()}
