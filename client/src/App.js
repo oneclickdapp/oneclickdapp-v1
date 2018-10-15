@@ -19,7 +19,7 @@ import {
 } from "semantic-ui-react";
 
 // ABI for test purposes
-import sampleABI from "./ethereum/sampleABI";
+import sampleABI from "./ethereum/sampleABI2";
 
 // Components
 import web3 from "./ethereum/web3";
