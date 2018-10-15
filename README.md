@@ -18,7 +18,7 @@ The goal of this project is to make it easier to interact with smart contracts d
 
 - Automatically save/show your DApp history using a MetaMask account
 - "Copy the code" button to quickly build an input form for your own React app.
-- In-page wallet for users without a wallet (for testing only)
+- In-page wallet for new ethereum users (for testing only)
 - DApp Emulator- simulate any DApp using a mainnet fork.
 
 ## Run the app
@@ -30,5 +30,5 @@ The goal of this project is to make it easier to interact with smart contracts d
 
 ## Contact
 
-[Joseph](https://twitter.com/cupojoseph)
+[Joseph](https://twitter.com/cupojoseph),
 [Patrick](https://twitter.com/pi0neerpat)

@@ -32,7 +32,7 @@ app.post("/contracts", (req, res) => {
   const mnemonic = mnGen.word(3);
 
   console.log(" ");
-  console.log("################## POST Contract  #####################");
+  console.log("################## POST #####################");
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
@@ -59,7 +59,7 @@ app.post("/contracts", (req, res) => {
 app.get("/contracts/:mnemonic", (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
   console.log(" ");
-  console.log("################## GET CALL  #####################");
+  console.log("################## GET  #####################");
   console.log(`Retrieving contract for mnemonic: ${mnemonic}`);
 
   Contract.find({ mnemonic: mnemonic })
