@@ -84,6 +84,10 @@ app.get("/contracts/:mnemonic", (req, res) => {
     });
 });
 
+app.get("*", (req, res) => {
+  res.sendFile(express.static("client/build"));
+});
+
 app.listen(app.get("port"), () => {
   console.log(
     `_______________________________________________________________`
