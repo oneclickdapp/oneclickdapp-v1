@@ -48,7 +48,7 @@ class App extends Component {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 1) {
       axios
-        .get(`./contracts${mnemonic}`)
+        .get(`/contracts${mnemonic}`)
         .then(result => {
           this.setState({
             network: result.data.network || "",
