@@ -119,7 +119,7 @@ class App extends Component {
         network
       })
       .then(res => {
-        window.location.pathname = res.data.mnemonic;
+        window.location.pathname = `~${res.data.mnemonic}`;
       })
       .catch(err => {
         console.log(err);

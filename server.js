@@ -16,11 +16,9 @@ app.set("port", process.env.PORT || 3001);
 // Express only serves static assets in production
 if (process.env.NODE_ENV === "production") {
   app.set("port", 3000);
-  app.use(express.static("client/build"));
+  app.use(["/", "/~*"], express.static("client/build"));
 }
 app.use(bodyParser.json());
-
-app.get("/", (req, res) => express.static(__dirname + "client/build"));
 
 app.post("/contracts", (req, res) => {
   const contractName = req.body.contractName;
@@ -56,7 +54,7 @@ app.post("/contracts", (req, res) => {
   );
 });
 
-app.get("/contracts/:mnemonic", (req, res) => {
+app.get("/contracts/~:mnemonic", (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
   console.log(" ");
   console.log("################## GET  #####################");
