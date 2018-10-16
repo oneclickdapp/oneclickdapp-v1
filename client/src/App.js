@@ -14,8 +14,7 @@ import {
   // Divider,
   Segment,
   Header,
-  Icon,
-  Label
+  Icon
 } from "semantic-ui-react";
 
 // ABI for test purposes
@@ -31,7 +30,7 @@ class App extends Component {
   state = {
     abi: "",
     abiRaw: JSON.stringify(sampleABI),
-    network: "Main",
+    network: "main",
     contractAddress: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d",
     errorMessage: "",
     errorMessageView: "",
@@ -65,6 +64,8 @@ class App extends Component {
         .catch(function(err) {
           console.log(err);
         });
+    } else {
+      this.handleChangeABI({}, { value: this.state.abiRaw });
     }
   };
 
@@ -73,7 +74,7 @@ class App extends Component {
   };
 
   handleChangeABI = (e, { value }) => {
-    this.setState({ abiRaw: value });
+    this.setState({ abiRaw: value, loading: true });
     const { contractAddress } = this.state;
     this.setState({ errorMessage: "", abi: "" });
     if (value) {
@@ -94,6 +95,7 @@ class App extends Component {
         return;
       }
     }
+    this.setState({ loading: false });
   };
 
   // Takes inputs from the user and stores them to JSON object methodArguments

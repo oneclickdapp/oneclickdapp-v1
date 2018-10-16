@@ -1,8 +1,5 @@
 {
-  "//1": "describes your app and its dependencies",
-  "//2": "https://docs.npmjs.com/files/package.json",
-  "//3": "updating this file will download and update your packages",
-  "name": "hello-sqlite",
+  "name": "one-click-dapp",
   "version": "0.0.1",
   "description": "A simple Node app with SQLite as a database management system, instantly up and running.",
   "main": "server.js",
@@ -13,6 +10,7 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
+    "dotenv": "^6.1.0",
     "express": "^4.16.3",
     "fs": "0.0.2",
     "lodash": "^4.17.10",
