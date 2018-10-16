@@ -17,9 +17,11 @@ The goal of this project is to make it easier to interact with smart contracts d
 ## Planned
 
 - Automatically save/show your DApp history using a MetaMask account
+- In-page wallet for new ethereum users (for play only)
+- DApp Emulator- simulate any mainnet DApp using Ganache forking
+- IPFS for frontend and backend
+- Use a decentralized domain name service provider
 - "Copy the code" button to quickly build an input form for your own React app.
-- In-page wallet for new ethereum users (for testing only)
-- DApp Emulator- simulate any DApp using a mainnet fork.
 
 ## Run the app
 
