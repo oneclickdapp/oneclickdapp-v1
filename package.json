@@ -6,7 +6,9 @@
   "scripts": {
     "start": "concurrently \"npm run server\" \"npm run client\" ",
     "server": "node server.js",
-    "client": "node start-client.js"
+    "client": "node start-client.js",
+    "start-production": "npm run build-client && NODE_ENV=production node server",
+    "build-client": "cd client && npm run build && cd .."
   },
   "dependencies": {
     "body-parser": "^1.18.3",

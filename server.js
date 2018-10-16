@@ -14,9 +14,9 @@ var mnGen = require("mngen"); // Random word generator
 var app = express();
 app.set("port", process.env.PORT || 3001);
 // Express only serves static assets in production
-// if (process.env.NODE_ENV === "production") {
-app.use(express.static("client/build"));
-// }
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static("client/build"));
+}
 app.use(bodyParser.json());
 
 app.post("/contracts", (req, res) => {
@@ -33,7 +33,7 @@ app.post("/contracts", (req, res) => {
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
-  console.log(`URL: www.makeadapp.com/${mnemonic}`);
+  console.log(`URL: www.oneclickdapp.com/${mnemonic}`);
 
   var contract = new Contract({
     contractName: contractName,
