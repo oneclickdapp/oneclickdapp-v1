@@ -48,7 +48,7 @@ class App extends Component {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 1) {
       axios
-        .get(`./contracts${mnemonic}`)
+        .get(`/contracts${mnemonic}`)
         .then(result => {
           this.setState({
             network: result.data.network || "",
@@ -119,7 +119,7 @@ class App extends Component {
         network
       })
       .then(res => {
-        window.location.pathname = res.data.mnemonic;
+        window.location.pathname = `~${res.data.mnemonic}`;
       })
       .catch(err => {
         console.log(err);
@@ -426,7 +426,7 @@ class App extends Component {
                 />
               </Form.Input>
               <Button color="green" content="Get Shareable Link" />
-              <a href={`OneClickDApp.com${this.state.mnemonic}`}>
+              <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
                 OneClickDApp.com{this.state.mnemonic || "/ ..."}
               </a>
             </Grid.Column>
@@ -447,6 +447,8 @@ class App extends Component {
         <header className="App-header">
           <h1 className="App-title">One Click DApp</h1>
         </header>
+        <p1>Curently in alpha. Help make this open-source app awesome: </p1>
+        <a href="https://github.com/blockchainbuddha/one-click-DApps">Github</a>
         {this.renderDappForm()}
         {this.renderInterface()}
       </div>

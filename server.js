@@ -14,9 +14,6 @@ var mnGen = require("mngen"); // Random word generator
 var app = express();
 app.set("port", process.env.PORT || 3001);
 // Express only serves static assets in production
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static("client/build"));
-}
 app.use(bodyParser.json());
 
 app.post("/contracts", (req, res) => {
@@ -33,7 +30,7 @@ app.post("/contracts", (req, res) => {
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
-  console.log(`URL: www.oneclickdapp.com/${mnemonic}`);
+  console.log(`URL: www.oneclickdapp.com/~${mnemonic}`);
 
   var contract = new Contract({
     contractName: contractName,
@@ -53,7 +50,7 @@ app.post("/contracts", (req, res) => {
   );
 });
 
-app.get("/contracts/:mnemonic", (req, res) => {
+app.get("/contracts/~:mnemonic", (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
   console.log(" ");
   console.log("################## GET  #####################");
@@ -83,6 +80,12 @@ app.get("/contracts/:mnemonic", (req, res) => {
       console.log(err.err);
     });
 });
+
+if (process.env.NODE_ENV === "production") {
+  app.set("port", 3000);
+  app.use(express.static("client/build"));
+  app.use("*", express.static("client/build"));
+}
 
 app.listen(app.get("port"), () => {
   console.log(
