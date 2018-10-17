@@ -30,14 +30,16 @@ app.post("/contracts", (req, res) => {
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
+  const currentTime = Date.now();
+  console.log(`Current time: ${currentTime}`);
   console.log(`URL: www.oneclickdapp.com/~${mnemonic}`);
-
   var contract = new Contract({
     contractName: contractName,
     abi: abi,
     contractAddress: contractAddress,
     network: network,
-    mnemonic: mnemonic
+    mnemonic: mnemonic,
+    createdAt: currentTime
   });
 
   contract.save().then(
@@ -64,11 +66,13 @@ app.get("/contracts/~:mnemonic", (req, res) => {
         const abi = myContract.abi;
         const contractAddress = myContract.contractAddress;
         const network = myContract.network;
+        const createdAt = myContract.createdAt;
         res.send({
           contractName,
           abi,
           contractAddress,
-          network
+          network,
+          createdAt
         });
       } else {
         res.status(400).send(`Contract not found: ${mnemonic}`);
