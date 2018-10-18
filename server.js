@@ -52,6 +52,31 @@ app.post("/contracts", (req, res) => {
   );
 });
 
+app.get("/contracts/recentContracts", (req, res) => {
+  Contract.find()
+    .sort({ _id: -1 })
+    .limit(10)
+    .then(contractArray => {
+      recentContracts = new Array();
+      contractArray.forEach(contract => {
+        var contractData = {
+          contractName: contract.contractName,
+          network: contract.network,
+          mnemonic: contract.mnemonic,
+          createdAt: contract._id.getTimestamp()
+        };
+        recentContracts.push(contractData);
+      });
+      res.send({
+        recentContracts
+      });
+    })
+    .catch(function(err) {
+      res.status(400).send(`Recent contracts not found...`);
+      console.log(err.err);
+    });
+});
+
 app.get("/contracts/~:mnemonic", (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
   console.log(" ");

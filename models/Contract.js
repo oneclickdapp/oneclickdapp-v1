@@ -15,9 +15,6 @@ var Contract = mongoose.model("Contract", {
   },
   mnemonic: {
     type: String
-  },
-  createdAt: {
-    type: Number
   }
 });
 
