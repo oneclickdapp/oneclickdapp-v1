@@ -37,11 +37,13 @@ class App extends Component {
     loading: false,
     methodData: [],
     contractName: "CryptoKitties",
-    mnemonic: ""
+    mnemonic: "",
+    recentContracts: {},
   };
 
   componentDidMount = async () => {
     this.loadExistingContract();
+    this.loadRecentContracts();
   };
 
   loadExistingContract = () => {
@@ -61,7 +63,7 @@ class App extends Component {
             { value: JSON.stringify(result.data.abi) || "" }
           );
         })
-        .catch(function(err) {
+        .catch(function (err) {
           console.log(err);
         });
     } else {
@@ -124,7 +126,16 @@ class App extends Component {
       .catch(err => {
         console.log(err);
       })
-      .then(res => {});
+      .then(res => { });
+  };
+
+  loadRecentContracts = () => {
+    axios
+      .get(`/contracts/recentContracts`)
+      .then(response => {
+        this.setState({ recentContracts: response.data.recentContracts })
+      })
+      .catch(err => console.log(err))
   };
 
   // send() methods alter the contract state, and require gas.
@@ -208,9 +219,10 @@ class App extends Component {
   };
 
   renderInterface() {
+    const { recentContracts } = this.state;
     return (
       <div>
-        <Grid stackable columns={2}>
+        <Grid stackable columns={3}>
           <Grid.Column>
             <Header>
               Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
@@ -224,6 +236,9 @@ class App extends Component {
             </Header>
             {this.renderCalls()}
           </Grid.Column>
+            <Grid.Column>
+              { recentContracts.toString() }
+            </Grid.Column>
         </Grid>
       </div>
     );
@@ -435,6 +450,9 @@ class App extends Component {
         </Form>
       </Segment>
     );
+  }
+
+  renderHistory() {
   }
 
   render() {
