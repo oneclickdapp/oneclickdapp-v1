@@ -490,7 +490,7 @@ mngen@^1.1.0:
   dependencies:
     meow "^3.3.0"
 
-moment@^2.11.2:
+moment@^2.11.2, moment@^2.22.2:
   version "2.22.2"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.22.2.tgz#3c257f9839fc0e93ff53149632239eb90783ff66"
   integrity sha1-PCV/mDn8DpP/UxSWMiOeuQeD/2Y=
