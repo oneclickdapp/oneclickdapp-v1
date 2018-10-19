@@ -2,7 +2,7 @@
 
 Paste an ABI and get a permanent link that can be used to interact with that contract
 
-![alt-text](https://github.com/blockchainbuddha/one-click-DApps/blob/react/screengrab.png)
+![alt-text](https://github.com/blockchainbuddha/one-click-DApps/blob/master/screengrab.png)
 
 ## Problem
 
