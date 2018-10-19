@@ -111,7 +111,7 @@ app.get("/contracts/~:mnemonic", (req, res) => {
 });
 
 if (process.env.NODE_ENV === "production") {
-  app.set("port", 3000);
+  app.set("port", 80);
   app.use(express.static("client/build"));
   app.use("*", express.static("client/build"));
 }

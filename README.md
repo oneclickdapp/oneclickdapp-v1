@@ -30,6 +30,15 @@ The goal of this project is to make it easier to interact with smart contracts d
     > process.env.MONGODB_URI = "mongodb://..."
 3.  cd to root directory and run `npm start`
 
+## Run in production mode
+
+First enable node to listen on port 80
+
+1.  `sudo apt-get install libcap2-bin`
+2.  `sudo setcap cap_net_bind_service=+ep /usr/local/bin/node`
+
+Then `npm run start-production`
+
 ## Contact
 
 [Joseph](https://twitter.com/cupojoseph),
