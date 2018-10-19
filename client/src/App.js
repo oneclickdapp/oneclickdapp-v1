@@ -227,7 +227,7 @@ class App extends Component {
     return (
       <Grid.Column>
         <Header>Recently created DApps</Header>
-        <div class="vertical-menu">
+        <div className="vertical-menu">
           <Menu vertical>
             {recentContracts.length > 0 ? (
               recentContracts.map((contract, index) => (
@@ -480,8 +480,6 @@ class App extends Component {
       </Segment>
     );
   }
-
-  renderHistory() {}
 
   render() {
     if (this.state.hasError) {
