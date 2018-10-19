@@ -248,7 +248,7 @@ class App extends Component {
                     <Header textAlign="center">
                       {contract.contractName}
                       <Header.Subheader>{contract.network.toUpperCase()} Network </Header.Subheader>
-                      <Header.Subheader>Created {moment(contract.createdAt).startOf('hour').fromNow()} </Header.Subheader>
+                      <Header.Subheader>Created {moment(contract.createdAt).fromNow()} </Header.Subheader>
                     </Header>
                   </Segment>
                 ))
