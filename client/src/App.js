@@ -10,7 +10,7 @@ import {
   // Input,
   Message,
   Form,
-  // Card,
+  Menu,
   // Divider,
   Segment,
   Header,
@@ -22,6 +22,9 @@ import sampleABI from "./ethereum/sampleABI2";
 
 // Components
 import web3 from "./ethereum/web3";
+
+// MomentJS
+import moment from "moment";
 
 // Using axios to fetch existing JSON contract data
 const axios = require("axios");
@@ -37,11 +40,13 @@ class App extends Component {
     loading: false,
     methodData: [],
     contractName: "CryptoKitties",
-    mnemonic: ""
+    mnemonic: "",
+    recentContracts: {}
   };
 
   componentDidMount = async () => {
     this.loadExistingContract();
+    this.loadRecentContracts();
   };
 
   loadExistingContract = () => {
@@ -127,6 +132,16 @@ class App extends Component {
       .then(res => {});
   };
 
+  loadRecentContracts = () => {
+    axios
+      .get(`/contracts/recentContracts`)
+      .then(response => {
+        this.setState({ recentContracts: response.data.recentContracts });
+      })
+      .then(res => {})
+      .catch(err => console.log(err));
+  };
+
   // send() methods alter the contract state, and require gas.
   handleSubmitSend = (e, { name }) => {
     console.log("Performing function 'send()'...");
@@ -206,6 +221,33 @@ class App extends Component {
     }
     return newMethodData;
   };
+
+  renderRecentHistory() {
+    const { recentContracts } = this.state;
+    return (
+      <Grid.Column>
+        <Header>Recently created DApps</Header>
+        <div className="vertical-menu">
+          <Menu vertical>
+            {recentContracts.length > 0 ? (
+              recentContracts.map((contract, index) => (
+                <Menu.Item
+                  key={index}
+                  href={`//oneclickdapp.com/~${contract.mnemonic}`}
+                >
+                  <Menu.Header>{contract.contractName}</Menu.Header>
+                  {contract.network.toUpperCase()} Network <br />Created{" "}
+                  {moment(contract.createdAt).fromNow()}
+                </Menu.Item>
+              ))
+            ) : (
+              <p>No contracts found.</p>
+            )}
+          </Menu>
+        </div>
+      </Grid.Column>
+    );
+  }
 
   renderInterface() {
     return (
@@ -382,7 +424,7 @@ class App extends Component {
           error={!!this.state.errorMessage}
           onSubmit={this.handleGenerateURL}
         >
-          <Grid stackable columns={2}>
+          <Grid stackable columns={3}>
             <Grid.Column>
               <Form.Input
                 inline
@@ -426,10 +468,12 @@ class App extends Component {
                 />
               </Form.Input>
               <Button color="green" content="Get Shareable Link" />
+              <br />
               <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
                 OneClickDApp.com{this.state.mnemonic || "/ ..."}
               </a>
             </Grid.Column>
+            {this.renderRecentHistory()}
           </Grid>
           <Message error header="Oops!" content={this.state.errorMessage} />
         </Form>
@@ -447,7 +491,7 @@ class App extends Component {
         <header className="App-header">
           <h1 className="App-title">One Click DApp</h1>
         </header>
-        <p1>Curently in alpha. Help make this open-source app awesome: </p1>
+        <p>Curently in alpha. Help make this open-source app awesome: </p>
         <a href="https://github.com/blockchainbuddha/one-click-DApps">Github</a>
         {this.renderDappForm()}
         {this.renderInterface()}

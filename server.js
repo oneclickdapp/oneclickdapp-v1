@@ -30,14 +30,16 @@ app.post("/contracts", (req, res) => {
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
+  const currentTime = Date.now();
+  console.log(`Current time: ${currentTime}`);
   console.log(`URL: www.oneclickdapp.com/~${mnemonic}`);
-
   var contract = new Contract({
     contractName: contractName,
     abi: abi,
     contractAddress: contractAddress,
     network: network,
-    mnemonic: mnemonic
+    mnemonic: mnemonic,
+    createdAt: currentTime
   });
 
   contract.save().then(
@@ -48,6 +50,31 @@ app.post("/contracts", (req, res) => {
       res.status(400).send(e);
     }
   );
+});
+
+app.get("/contracts/recentContracts", (req, res) => {
+  Contract.find()
+    .sort({ _id: -1 })
+    .limit(10)
+    .then(contractArray => {
+      recentContracts = new Array();
+      contractArray.forEach(contract => {
+        var contractData = {
+          contractName: contract.contractName,
+          network: contract.network,
+          mnemonic: contract.mnemonic,
+          createdAt: contract._id.getTimestamp()
+        };
+        recentContracts.push(contractData);
+      });
+      res.send({
+        recentContracts
+      });
+    })
+    .catch(function(err) {
+      res.status(400).send(`Recent contracts not found...`);
+      console.log(err.err);
+    });
 });
 
 app.get("/contracts/~:mnemonic", (req, res) => {
@@ -64,11 +91,13 @@ app.get("/contracts/~:mnemonic", (req, res) => {
         const abi = myContract.abi;
         const contractAddress = myContract.contractAddress;
         const network = myContract.network;
+        const createdAt = myContract.createdAt;
         res.send({
           contractName,
           abi,
           contractAddress,
-          network
+          network,
+          createdAt
         });
       } else {
         res.status(400).send(`Contract not found: ${mnemonic}`);
