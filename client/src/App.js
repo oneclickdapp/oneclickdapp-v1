@@ -10,7 +10,7 @@ import {
   // Input,
   Message,
   Form,
-  // Card,
+  Menu,
   // Divider,
   Segment,
   Header,
@@ -24,7 +24,7 @@ import sampleABI from "./ethereum/sampleABI2";
 import web3 from "./ethereum/web3";
 
 // MomentJS
-import moment from 'moment';
+import moment from "moment";
 
 // Using axios to fetch existing JSON contract data
 const axios = require("axios");
@@ -41,7 +41,7 @@ class App extends Component {
     methodData: [],
     contractName: "CryptoKitties",
     mnemonic: "",
-    recentContracts: {},
+    recentContracts: {}
   };
 
   componentDidMount = async () => {
@@ -66,7 +66,7 @@ class App extends Component {
             { value: JSON.stringify(result.data.abi) || "" }
           );
         })
-        .catch(function (err) {
+        .catch(function(err) {
           console.log(err);
         });
     } else {
@@ -129,17 +129,17 @@ class App extends Component {
       .catch(err => {
         console.log(err);
       })
-      .then(res => { });
+      .then(res => {});
   };
 
   loadRecentContracts = () => {
     axios
       .get(`/contracts/recentContracts`)
       .then(response => {
-        this.setState({ recentContracts: response.data.recentContracts })
+        this.setState({ recentContracts: response.data.recentContracts });
       })
-      .then( res => {})
-      .catch(err => console.log(err))
+      .then(res => {})
+      .catch(err => console.log(err));
   };
 
   // send() methods alter the contract state, and require gas.
@@ -222,11 +222,37 @@ class App extends Component {
     return newMethodData;
   };
 
-  renderInterface() {
+  renderRecentHistory() {
     const { recentContracts } = this.state;
     return (
+      <Grid.Column>
+        <Header>Recently created DApps</Header>
+        <div class="vertical-menu">
+          <Menu vertical>
+            {recentContracts.length > 0 ? (
+              recentContracts.map((contract, index) => (
+                <Menu.Item
+                  key={index}
+                  href={`//oneclickdapp.com/~${contract.mnemonic}`}
+                >
+                  <Menu.Header>{contract.contractName}</Menu.Header>
+                  {contract.network.toUpperCase()} Network <br />Created{" "}
+                  {moment(contract.createdAt).fromNow()}
+                </Menu.Item>
+              ))
+            ) : (
+              <p>No contracts found.</p>
+            )}
+          </Menu>
+        </div>
+      </Grid.Column>
+    );
+  }
+
+  renderInterface() {
+    return (
       <div>
-        <Grid stackable columns={3}>
+        <Grid stackable columns={2}>
           <Grid.Column>
             <Header>
               Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
@@ -240,20 +266,6 @@ class App extends Component {
             </Header>
             {this.renderCalls()}
           </Grid.Column>
-            <Grid.Column>
-              <Header>Recently created contracts</Header>
-              {(recentContracts.length > 0) ? (
-                recentContracts.map((contract, index) => (
-                  <Segment textAlign="left" key={index}>
-                    <Header textAlign="center">
-                      {contract.contractName}
-                      <Header.Subheader>{contract.network.toUpperCase()} Network </Header.Subheader>
-                      <Header.Subheader>Created {moment(contract.createdAt).fromNow()} </Header.Subheader>
-                    </Header>
-                  </Segment>
-                ))
-              ) : <p>No contract found.</p> }
-            </Grid.Column>
         </Grid>
       </div>
     );
@@ -412,7 +424,7 @@ class App extends Component {
           error={!!this.state.errorMessage}
           onSubmit={this.handleGenerateURL}
         >
-          <Grid stackable columns={2}>
+          <Grid stackable columns={3}>
             <Grid.Column>
               <Form.Input
                 inline
@@ -456,10 +468,12 @@ class App extends Component {
                 />
               </Form.Input>
               <Button color="green" content="Get Shareable Link" />
+              <br />
               <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
                 OneClickDApp.com{this.state.mnemonic || "/ ..."}
               </a>
             </Grid.Column>
+            {this.renderRecentHistory()}
           </Grid>
           <Message error header="Oops!" content={this.state.errorMessage} />
         </Form>
@@ -467,8 +481,7 @@ class App extends Component {
     );
   }
 
-  renderHistory() {
-  }
+  renderHistory() {}
 
   render() {
     if (this.state.hasError) {
