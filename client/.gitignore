@@ -5,7 +5,13 @@ node_modules
 
 # testing
 coverage
+<<<<<<< HEAD
 build/
+=======
+/build/*
+/build
+/build/
+>>>>>>> productionBuild
 # misc
 .DS_Store
 .env
