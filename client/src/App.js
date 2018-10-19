@@ -23,6 +23,9 @@ import sampleABI from "./ethereum/sampleABI2";
 // Components
 import web3 from "./ethereum/web3";
 
+// MomentJS
+import moment from 'moment';
+
 // Using axios to fetch existing JSON contract data
 const axios = require("axios");
 
@@ -37,11 +40,13 @@ class App extends Component {
     loading: false,
     methodData: [],
     contractName: "CryptoKitties",
-    mnemonic: ""
+    mnemonic: "",
+    recentContracts: {},
   };
 
   componentDidMount = async () => {
     this.loadExistingContract();
+    this.loadRecentContracts();
   };
 
   loadExistingContract = () => {
@@ -61,7 +66,7 @@ class App extends Component {
             { value: JSON.stringify(result.data.abi) || "" }
           );
         })
-        .catch(function(err) {
+        .catch(function (err) {
           console.log(err);
         });
     } else {
@@ -124,7 +129,17 @@ class App extends Component {
       .catch(err => {
         console.log(err);
       })
-      .then(res => {});
+      .then(res => { });
+  };
+
+  loadRecentContracts = () => {
+    axios
+      .get(`/contracts/recentContracts`)
+      .then(response => {
+        this.setState({ recentContracts: response.data.recentContracts })
+      })
+      .then( res => {})
+      .catch(err => console.log(err))
   };
 
   // send() methods alter the contract state, and require gas.
@@ -208,9 +223,10 @@ class App extends Component {
   };
 
   renderInterface() {
+    const { recentContracts } = this.state;
     return (
       <div>
-        <Grid stackable columns={2}>
+        <Grid stackable columns={3}>
           <Grid.Column>
             <Header>
               Functions <Header.Subheader>(must pay tx fee)</Header.Subheader>
@@ -224,6 +240,20 @@ class App extends Component {
             </Header>
             {this.renderCalls()}
           </Grid.Column>
+            <Grid.Column>
+              <Header>Recently created contracts</Header>
+              {(recentContracts.length > 0) ? (
+                recentContracts.map((contract, index) => (
+                  <Segment textAlign="left" key={index}>
+                    <Header textAlign="center">
+                      {contract.contractName}
+                      <Header.Subheader>{contract.network.toUpperCase()} Network </Header.Subheader>
+                      <Header.Subheader>Created {moment(contract.createdAt).startOf('hour').fromNow()} </Header.Subheader>
+                    </Header>
+                  </Segment>
+                ))
+              ) : <p>No contract found.</p> }
+            </Grid.Column>
         </Grid>
       </div>
     );
@@ -437,6 +467,9 @@ class App extends Component {
     );
   }
 
+  renderHistory() {
+  }
+
   render() {
     if (this.state.hasError) {
       // You can render any custom fallback UI
@@ -447,7 +480,7 @@ class App extends Component {
         <header className="App-header">
           <h1 className="App-title">One Click DApp</h1>
         </header>
-        <p1>Curently in alpha. Help make this open-source app awesome: </p1>
+        <p>Curently in alpha. Help make this open-source app awesome: </p>
         <a href="https://github.com/blockchainbuddha/one-click-DApps">Github</a>
         {this.renderDappForm()}
         {this.renderInterface()}
