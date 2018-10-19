@@ -1,21 +1,22 @@
 {
-  "//1": "describes your app and its dependencies",
-  "//2": "https://docs.npmjs.com/files/package.json",
-  "//3": "updating this file will download and update your packages",
-  "name": "hello-sqlite",
+  "name": "one-click-dapp",
   "version": "0.0.1",
   "description": "A simple Node app with SQLite as a database management system, instantly up and running.",
   "main": "server.js",
   "scripts": {
-    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "start": "concurrently \"npm run server\" \"npm run client\" ",
     "server": "node server.js",
-    "client": "node start-client.js"
+    "client": "node start-client.js",
+    "start-production": "npm run build-client && NODE_ENV=production node server",
+    "build-client": "cd client && npm run build && cd .."
   },
   "dependencies": {
-    "express": "^4.16.3",
     "body-parser": "^1.18.3",
+    "express": "^4.16.3",
     "fs": "0.0.2",
     "lodash": "^4.17.10",
+    "mngen": "^1.1.0",
+    "moment": "^2.22.2",
     "mongodb": "^2.2.36",
     "mongoose": "^5.2.4"
   },

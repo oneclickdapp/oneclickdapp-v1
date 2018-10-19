@@ -1,16 +1,19 @@
 var mongoose = require("mongoose");
 
 var Contract = mongoose.model("Contract", {
-  name: {
+  contractName: {
     type: String
   },
   abi: {
     type: JSON
   },
-  address: {
+  contractAddress: {
     type: String
   },
   network: {
+    type: String
+  },
+  mnemonic: {
     type: String
   }
 });
