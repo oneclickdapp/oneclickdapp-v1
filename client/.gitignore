@@ -6,6 +6,8 @@ node_modules
 # testing
 coverage
 /build/*
+/build
+/build/
 # misc
 .DS_Store
 .env
