@@ -13,6 +13,7 @@ The goal of this project is to make it easier to interact with smart contracts d
 ## Features Completed
 
 - Save a DApp using custom domain ending e.g. `site.com/banana-monkey-fruit`
+- See recent history of DApps created by others
 
 ## Planned
 

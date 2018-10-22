@@ -121,7 +121,8 @@ class App extends Component {
         contractName,
         contractAddress,
         abi,
-        network
+        network,
+        walletAddress: "abc"
       })
       .then(res => {
         window.location.pathname = `~${res.data.mnemonic}`;

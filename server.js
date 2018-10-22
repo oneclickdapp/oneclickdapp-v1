@@ -6,8 +6,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 
 require("./db/config"); // Database login secrets
-var { mongoose } = require("./db/mongoose");
-var { Contract } = require("./models/Contract");
+var { db } = require("./db/mongoose");
+var { Contract } = require("./models/contract");
+var { User } = require("./models/user");
 
 var mnGen = require("mngen"); // Random word generator
 
@@ -21,16 +22,17 @@ app.post("/contracts", (req, res) => {
   const abi = req.body.abi;
   const contractAddress = req.body.contractAddress;
   const network = req.body.network;
-
+  const walletAddress = req.body.walletAddress.toLowerCase();
   // Generate the mnemonic word for the URL
-  const mnemonic = mnGen.word(3);
+  const mnemonic = mnGen.word(2);
+  const currentTime = Date.now();
 
   console.log(" ");
   console.log("################## POST #####################");
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
-  const currentTime = Date.now();
+  console.log(`User wallet address: ${walletAddress}`);
   console.log(`Current time: ${currentTime}`);
   console.log(`URL: www.oneclickdapp.com/~${mnemonic}`);
   var contract = new Contract({
@@ -41,6 +43,15 @@ app.post("/contracts", (req, res) => {
     mnemonic: mnemonic,
     createdAt: currentTime
   });
+
+  User.findOneAndUpdate(
+    { walletAddress: "heynow2" },
+    { $push: { savedDapps: mnemonic } },
+    {
+      new: true,
+      upsert: true
+    }
+  );
 
   contract.save().then(
     doc => {
