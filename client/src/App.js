@@ -51,7 +51,7 @@ class App extends Component {
 
   loadExistingContract = () => {
     const mnemonic = window.location.pathname;
-    if (mnemonic.length > 1) {
+    if (mnemonic.length > 0) {
       axios
         .get(`/contracts${mnemonic}`)
         .then(result => {
@@ -125,7 +125,7 @@ class App extends Component {
         walletAddress: "abc"
       })
       .then(res => {
-        window.location.pathname = `~${res.data.mnemonic}`;
+        window.location.pathname = `${res.data.mnemonic}`;
       })
       .catch(err => {
         console.log(err);
@@ -234,7 +234,7 @@ class App extends Component {
               recentContracts.map((contract, index) => (
                 <Menu.Item
                   key={index}
-                  href={`//oneclickdapp.com/~${contract.mnemonic}`}
+                  href={`//oneclickdapp.com/${contract.mnemonic}`}
                 >
                   <Menu.Header>{contract.contractName}</Menu.Header>
                   {contract.network.toUpperCase()} Network <br />Created{" "}

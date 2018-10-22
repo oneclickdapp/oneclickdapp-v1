@@ -34,7 +34,7 @@ app.post("/contracts", (req, res) => {
   );
   console.log(`User wallet address: ${walletAddress}`);
   console.log(`Current time: ${currentTime}`);
-  console.log(`URL: www.oneclickdapp.com/~${mnemonic}`);
+  console.log(`URL: www.oneclickdapp.com/${mnemonic}`);
   var contract = new Contract({
     contractName: contractName,
     abi: abi,
@@ -88,7 +88,7 @@ app.get("/contracts/recentContracts", (req, res) => {
     });
 });
 
-app.get("/contracts/~:mnemonic", (req, res) => {
+app.get("/contracts/:mnemonic", (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
   console.log(" ");
   console.log("################## GET  #####################");
@@ -119,6 +119,15 @@ app.get("/contracts/~:mnemonic", (req, res) => {
       res.status(400).send(`Contract not found: ${mnemonic}`);
       console.log(err.err);
     });
+});
+
+app.get("/user/:walletAddress", (req, res) => {
+  var walletAddress = req.params.walletAddress.toLowerCase();
+
+  User.findOne({ walletAddress }).then(user => {
+    savedDapps = user.savedDapps;
+    res.send({ savedDapps });
+  });
 });
 
 if (process.env.NODE_ENV === "production") {
