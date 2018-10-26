@@ -41,12 +41,14 @@ class App extends Component {
     methodData: [],
     contractName: "CryptoKitties",
     mnemonic: "",
-    recentContracts: {}
+    recentContracts: {},
+    userContracts: {}
   };
 
   componentDidMount = async () => {
     this.loadExistingContract();
     this.loadRecentContracts();
+    this.loadUser();
   };
 
   loadExistingContract = () => {
@@ -72,6 +74,25 @@ class App extends Component {
     } else {
       this.handleChangeABI({}, { value: this.state.abiRaw });
     }
+  };
+
+  loadRecentContracts = () => {
+    axios
+      .get(`/contracts/recentContracts`)
+      .then(response => {
+        this.setState({ recentContracts: response.data.recentContracts });
+      })
+
+      .catch(err => console.log(err));
+  };
+
+  loadUser = () => {
+    axios
+      .get(`/user/abc`)
+      .then(response => {
+        this.setState({ userContracts: response.data });
+      })
+      .catch(err => console.log(err));
   };
 
   handleChange = (e, { name, value }) => {
@@ -131,16 +152,6 @@ class App extends Component {
         console.log(err);
       })
       .then(res => {});
-  };
-
-  loadRecentContracts = () => {
-    axios
-      .get(`/contracts/recentContracts`)
-      .then(response => {
-        this.setState({ recentContracts: response.data.recentContracts });
-      })
-      .then(res => {})
-      .catch(err => console.log(err));
   };
 
   // send() methods alter the contract state, and require gas.
@@ -232,6 +243,33 @@ class App extends Component {
           <Menu vertical>
             {recentContracts.length > 0 ? (
               recentContracts.map((contract, index) => (
+                <Menu.Item
+                  key={index}
+                  href={`//oneclickdapp.com/${contract.mnemonic}`}
+                >
+                  <Menu.Header>{contract.contractName}</Menu.Header>
+                  {contract.network.toUpperCase()} Network <br />Created{" "}
+                  {moment(contract.createdAt).fromNow()}
+                </Menu.Item>
+              ))
+            ) : (
+              <p>No contracts found.</p>
+            )}
+          </Menu>
+        </div>
+      </Grid.Column>
+    );
+  }
+
+  renderUserHistory() {
+    const { userContracts } = this.state;
+    return (
+      <Grid.Column>
+        <Header>Your recent DApps</Header>
+        <div className="vertical-menu">
+          <Menu vertical>
+            {userContracts !== undefined && userContracts.length > 0 ? (
+              userContracts.map((contract, index) => (
                 <Menu.Item
                   key={index}
                   href={`//oneclickdapp.com/${contract.mnemonic}`}
@@ -475,6 +513,7 @@ class App extends Component {
               </a>
             </Grid.Column>
             {this.renderRecentHistory()}
+            {this.renderUserHistory()}
           </Grid>
           <Message error header="Oops!" content={this.state.errorMessage} />
         </Form>

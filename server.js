@@ -45,7 +45,7 @@ app.post("/contracts", (req, res) => {
   });
 
   User.findOneAndUpdate(
-    { walletAddress: "heynow2" },
+    { walletAddress: walletAddress },
     { $push: { savedDapps: mnemonic } },
     {
       new: true,
@@ -102,7 +102,7 @@ app.get("/contracts/:mnemonic", (req, res) => {
         const abi = myContract.abi;
         const contractAddress = myContract.contractAddress;
         const network = myContract.network;
-        const createdAt = myContract.createdAt;
+        const createdAt = myContract._id.getTimestamp();
         res.send({
           contractName,
           abi,
@@ -123,13 +123,24 @@ app.get("/contracts/:mnemonic", (req, res) => {
 
 app.get("/user/:walletAddress", (req, res) => {
   var walletAddress = req.params.walletAddress.toLowerCase();
-
-  User.findOne({ walletAddress }).then(user => {
-    savedDapps = user.savedDapps;
-    res.send({ savedDapps });
-  });
+  User.findOne({ walletAddress })
+    .then(user => {
+      mnemonics = user.savedDapps;
+      if (mnemonics !== undefined && mnemonics.length > 0) {
+        Contract.find({ mnemonic: { $in: mnemonics } }, function(err, items) {
+          res.send(items);
+        });
+      } else {
+        res.status(400).send(`User not found: ${wallletAddress}`);
+      }
+    })
+    .catch(function(err) {
+      res.status(400).send(`User not found`);
+      console.log(err.err);
+    });
 });
 
+// Return the front-end for all other GET calls
 if (process.env.NODE_ENV === "production") {
   app.set("port", 80);
   app.use(express.static("client/build"));
