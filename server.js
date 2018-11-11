@@ -123,13 +123,20 @@ app.get("/contracts/:mnemonic", (req, res) => {
 
 app.get("/user/:walletAddress", (req, res) => {
   var walletAddress = req.params.walletAddress.toLowerCase();
+  console.log(" ");
+  console.log("################## GET  #####################");
+  console.log(`Retrieving contracts for user wallet: ${walletAddress}`);
+
   User.findOne({ walletAddress })
     .then(user => {
       mnemonics = user.savedDapps;
       if (mnemonics !== undefined && mnemonics.length > 0) {
-        Contract.find({ mnemonic: { $in: mnemonics } }, function(err, items) {
-          res.send(items);
-        });
+        Contract.find({ mnemonic: { $in: mnemonics } })
+          .sort({ _id: -1 })
+          .then(dapps => {
+            // createdAt: dapp._id.getTimestamp();
+            res.send(dapps);
+          });
       } else {
         res.status(400).send(`User not found: ${wallletAddress}`);
       }
