@@ -60,17 +60,17 @@ This starts a local instance of the Ethereum Virtual Machine (EVM). Ganache-CLI 
 <img alt="clevis-explainer" src="readme-resources/clevis-explainer" width="500">
 </p>
 7. Lets ensure Clevis can talk with Ganache-CLI by asking for your <img alt="wallet" src="readme-resources/wallet.png" align="middle" width="35"> wallet accounts.
-```JavaScript
+```javascript
 clevis accounts
 >> Reading Accounts...
 >> ['0xf2A0DD5999c23f53fE8819CBbc06d2e2B05b9093',
 >>   '0x25a62dE56EF4fe5882336b05AbF202d1375272dD',
 >>   '0x367347648F02A6c6e0f5126185652332e91f2d00',
 >>   '0x5aB26450D93Bd70c66CD575e47B4c72E91df876B',...
-  ```
+```
   Now make a transaction by sending `0.2 ETH` from account 0 to account 1. The proper syntax is
   #### clevis send [amount] [fromindex] [toindex]
-``` JavaScript
+```javascript
 clevis send 0.2 0 1
 ```
 This is a good spot to try out some other commands. See the full list with
@@ -86,7 +86,7 @@ clevis help
 >Note: these are usually referred to as  "Smart Contracts."  However they are neither smart, nor a contract. Can you think of a better term?
 
 8. Create a new contract
-``` JavaScript
+```javascript
 clevis create Name
 ```
 Lets take a look at our project directory now
@@ -187,7 +187,7 @@ Let's review what just happened. During compilation, Clevis compiled our contrac
 </p>
 13. Let's try a test script now. Use the script `name` to get the value of `name` from your contract. Use this syntax:
 #### clevis contract [scriptname] [contractname] [[accountIndex]] [[contractArguments...]]
-```js
+```javascript
 clevis contract name Name
 >> CONTRACT
 >> //...(tons of useful information)
@@ -195,7 +195,7 @@ clevis contract name Name
 ```
 Awesome! We can now request information from our smart contract. This was a simple ".call()" function, which doesn't take arguments. Call functions don't require a <img alt="gas" src="readme-resources/gas.png" align="middle" width="35"> gas transaction fee, so we didn't need to specify an account.
 Here is the code that Clevis just ran for us:
-```js
+```javascript
 // Load dependencies for talking to Ganache-CLI using Web3
 const ganache = require("ganache-cli");
 const Web3 = require("web3");
@@ -213,7 +213,7 @@ console.log(response);
 Good thing you didn't need to write that!
 
 14. Now lets make a transaction that Δ changes the state of the contact, which will require a <img alt="gas" src="readme-resources/gas.png" align="middle" width="35"> gas transaction fee. We will need to specify an account in our <img alt="wallet" src="readme-resources/wallet.png" align="middle" width="35"> wallet. Let's use the `setName` function by calling the appropriate Clevis test script.
-```js
+```javascript
 clevis contract setName Name 0 "My new name"
 >>
 >> transactionHash:0x656600d6db9aa7fb814662c41657abe43074dc05b7bbb66edec5a6736c4e49b1
@@ -230,14 +230,14 @@ clevis contract setName Name 0 "My new name"
 ```
 If you're successful, you'll see a transaction hash (think of as a receipt), and `status: true`.
 Clevis just ran all the code from the previous step, except instead of `contract.methods.name().call()`, it ran the following.
-```JavaScript
+```javascript
 const accounts = await web3.eth.getAccounts();
 await name.methods.setName("My new  name").send({
   from: accounts[0],
   gas: 1300000
 });
 ```
-Remember that ".call()" functions do not require gas, and simply read the current state. However ".send()" functions modify the state of the contract, therefore we must specify an account to pay the <img alt="gas" src="readme-resources/gas.png" align="middle" width="35"> gas transaction fee. 
+Remember that ".call()" functions do not require gas, and simply read the current state. However ".send()" functions modify the state of the contract, therefore we must specify an account to pay the <img alt="gas" src="readme-resources/gas.png" align="middle" width="35"> gas transaction fee.
 
 #### Congratulations! we now know how to create a new contract using Clevis, and how to read and write using the `clevis contract` commands. Next up is building out the front-end.
 
