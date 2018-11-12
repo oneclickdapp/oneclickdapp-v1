@@ -29,10 +29,9 @@ clevis version
 4. Test out a command.
 ```
 clevis sha3 "Hello World"
+>> SHA3
+>> 0x592fa743889fc7f92ac2a37bb1f5ba1daf2a5c84741ca0e0061d243a2e6707ba
 ```
-You should see:
-`>>> SHA3
-0x592fa743889fc7f92ac2a37bb1f5ba1daf2a5c84741ca0e0061d243a2e6707ba`
 
   Great job!
 
@@ -46,7 +45,7 @@ npm install -g ganache-cli mocha
   > Ganache allows us to process transactions ⚡ instantly! Pretty sweet right?
 
 6. In a **new terminal**
-```JavaScript
+```
 ganache-cli
 >> ... // (lots of stuff here)
 >> Listening on 127.0.0.1:8545
@@ -60,6 +59,7 @@ This starts a local instance of the Ethereum Virtual Machine (EVM). Ganache-CLI 
 <img alt="clevis-explainer" src="readme-resources/clevis-explainer" width="500">
 </p>
 7. Lets ensure Clevis can talk with Ganache-CLI by asking for your <img alt="wallet" src="readme-resources/wallet.png" align="middle" width="35"> wallet accounts.
+
 ```javascript
 clevis accounts
 >> Reading Accounts...
@@ -68,13 +68,16 @@ clevis accounts
 >>   '0x367347648F02A6c6e0f5126185652332e91f2d00',
 >>   '0x5aB26450D93Bd70c66CD575e47B4c72E91df876B',...
 ```
+
   Now make a transaction by sending `0.2 ETH` from account 0 to account 1. The proper syntax is
   #### clevis send [amount] [fromindex] [toindex]
+
 ```javascript
 clevis send 0.2 0 1
 ```
+
 This is a good spot to try out some other commands. See the full list with
-```
+```javascript
 clevis help
 ```
 
@@ -187,15 +190,18 @@ Let's review what just happened. During compilation, Clevis compiled our contrac
 </p>
 13. Let's try a test script now. Use the script `name` to get the value of `name` from your contract. Use this syntax:
 #### clevis contract [scriptname] [contractname] [[accountIndex]] [[contractArguments...]]
-```javascript
+
+  ```javascript
 clevis contract name Name
 >> CONTRACT
 >> //...(tons of useful information)
 >> Hello world
 ```
-Awesome! We can now request information from our smart contract. This was a simple ".call()" function, which doesn't take arguments. Call functions don't require a <img alt="gas" src="readme-resources/gas.png" align="middle" width="35"> gas transaction fee, so we didn't need to specify an account.
+
+  Awesome! We can now request information from our smart contract. This was a simple ".call()" function, which doesn't take arguments. Call functions don't require a <img alt="gas" src="readme-resources/gas.png" align="middle" width="35"> gas transaction fee, so we didn't need to specify an account.
 Here is the code that Clevis just ran for us:
-```javascript
+
+  ```javascript
 // Load dependencies for talking to Ganache-CLI using Web3
 const ganache = require("ganache-cli");
 const Web3 = require("web3");
