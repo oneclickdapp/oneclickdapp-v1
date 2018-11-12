@@ -58,7 +58,7 @@ This starts a local instance of the Ethereum Virtual Machine (EVM). Ganache-CLI 
 <p align="center">
 <img alt="clevis-explainer" src="readme-resources/clevis-explainer" width="500">
 </p>
-7. Lets ensure Clevis can talk with Ganache-CLI by asking for your <img alt="wallet" src="readme-resources/wallet.png" align="middle" width="35"> wallet accounts.
+7. Lets ensure Clevis can talk with Ganache-CLI by asking for your <img alt="wallet" src="readme-resources/wallet.png" width="35"> wallet accounts.
 
 ```javascript
 clevis accounts
