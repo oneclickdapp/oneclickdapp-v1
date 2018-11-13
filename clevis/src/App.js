@@ -34,7 +34,7 @@ class App extends Component {
          }}
        />
       )
-      /*
+
       connectedDisplay.push(
         <ContractLoader
          key="ContractLoader"
