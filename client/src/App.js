@@ -50,7 +50,7 @@ class App extends Component {
       mnemonic: '',
       recentContracts: {},
       userContracts: {},
-      //new
+      //new from dapparatus
       web3: false,
       account: false,
       gwei: 4,
@@ -617,21 +617,24 @@ class App extends Component {
     }
     return (
       <div className="App">
-        <Metamask
-          config={{ DEBUG: false, requiredNetwork }}
-          onUpdate={state => {
-            // console.log('metamask state update:', state);
-            console.log('metamask config required network:', state.config.requiredNetwork);
-            console.log(`${requiredNetwork}`);
-            if (state.web3Provider) {
-              state.web3 = new Web3(state.web3Provider);
-              this.setState( state.config.requiredNetwork: requiredNetwork);
-            }
-          }}
-        />
         <header className="App-header">
           <h1 className="App-title">One Click DApp</h1>
         </header>
+        <Dapparatus
+          config={{
+            DEBUG:false,
+            requiredNetwork:[requiredNetwork],
+          }}
+          metatx={METATX}
+          fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
+          onUpdate={(state)=>{
+           console.log("metamask state update:",state)
+           if(state.web3Provider) {
+             state.web3 = new Web3(state.web3Provider)
+             this.setState(state)
+           }
+          }}
+        />
         <p>Curently in alpha. Help make this open-source app awesome: </p>
         <a href="https://github.com/blockchainbuddha/one-click-DApps">Github</a>
         {this.renderDappForm()}
