@@ -8,7 +8,11 @@ import {
   Segment,
   Header,
   Icon,
-  Button
+  Button,
+  Progress,
+  Divider,
+  Popup,
+  Container
 } from 'semantic-ui-react';
 import {
   Dapparatus,
@@ -50,8 +54,10 @@ class App extends Component {
       mnemonic: '',
       recentContracts: {},
       userContracts: {},
+      // Display states
+      displayDappForm: true,
+      currentDappFormStep: 2,
       //new from dapparatus
-      contracts: {},
       web3: false,
       account: false,
       gwei: 4,
@@ -62,8 +68,14 @@ class App extends Component {
   componentDidMount = async () => {
     this.loadExistingContract();
     this.loadRecentContracts();
-    this.loadUser();
   };
+
+  componentDidUpdate() {
+    if (!this.state.account) {
+      this.loadUser();
+    }
+  }
+
   loadExistingContract = () => {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 0) {
@@ -71,25 +83,25 @@ class App extends Component {
         .get(`/contracts${mnemonic}`)
         .then(result => {
           // from contractLoader
-          let resultingContract = {};
-          let contract = new web3.eth.Contract(
-            result.data.abi,
-            result.data.contractAddress
-          );
-          resultingContract = contract.methods;
-          resultingContract._blocknumber = '';
-          resultingContract._address = result.data.contractAddress;
-          resultingContract._abi = result.data.abi;
-          resultingContract._contract = contract;
-          // from componentDidMount
-          let contracts = {};
-          contracts['custom'] = resultingContract;
+          // let resultingContract = {};
+          // let contract = new web3.eth.Contract(
+          //   result.data.abi,
+          //   result.data.contractAddress
+          // );
+          // resultingContract = contract.methods;
+          // resultingContract._blocknumber = '';
+          // resultingContract._address = result.data.contractAddress;
+          // resultingContract._abi = result.data.abi;
+          // resultingContract._contract = contract;
+          // // from componentDidMount
+          // let contracts = {};
+          // contracts['custom'] = resultingContract;
           this.setState({
             requiredNetwork: result.data.network || '',
             contractName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
             mnemonic: mnemonic,
-            contracts: contracts
+            displayDappForm: false
           });
           this.handleChangeABI(
             {},
@@ -275,40 +287,80 @@ class App extends Component {
   };
 
   renderDappForm() {
-    return (
-      <Segment textAlign="left">
-        <Form
-          error={!!this.state.errorMessage}
-          onSubmit={this.handleGenerateURL}
-        >
-          <Grid stackable columns={3}>
-            <Grid.Column>
+    const { currentDappFormStep } = this.state;
+    let formDisplay = [];
+
+    if (currentDappFormStep < 1) {
+      formDisplay = (
+        <div>
+          <Header>Hi, I'm Chelsea!</Header>
+          <p>Let's creat a DApp...</p>
+          <Button
+            color="green"
+            icon="thumbs up"
+            labelPosition="right"
+            name="currentDappFormStep"
+            value={currentDappFormStep + 1}
+            onClick={this.handleChange}
+            content="Got it!"
+          />
+        </div>
+      );
+    } else if (currentDappFormStep == 1) {
+      formDisplay = (
+        <div>
+          <Header as="h2" icon textAlign="center">
+            <Icon name="pencil alternate" circular />
+            Enter your contract's Name
+          </Header>
+          <Header as="h3">
+            <Icon name="search" />or find an existing one
+          </Header>
+          <Form
+            textAlign="center"
+            error={!!this.state.errorMessage}
+            onSubmit={() => this.setState({ currentDappFormStep: 2 })}
+          >
+            <Form.Input
+              inline
+              required={true}
+              name="contractName"
+              placeholder="myDApp"
+              value={this.state.contractName}
+              onChange={this.handleChange}
+            />
+          </Form>
+          <Grid columns={2} centered>
+            <Grid.Column>{this.renderUserHistory()}</Grid.Column>
+            <Grid.Column>{this.renderGlobalHistory()}</Grid.Column>
+          </Grid>
+        </div>
+      );
+    } else if (currentDappFormStep == 2) {
+      formDisplay = (
+        <div>
+          <Header as="h2" icon textAlign="center">
+            <Icon name="file code outline" circular />
+            Enter the details
+          </Header>
+          <Form
+            textAlign="center"
+            error={!!this.state.errorMessage}
+            onSubmit={this.handleGenerateURL}
+          >
+            <Form.Group inline>
               <Form.Input
                 inline
-                name="contractName"
-                label="DApp name"
-                placeholder="(optional)"
-                value={this.state.contractName}
-                onChange={this.handleChange}
-              />
-              <Form.TextArea
-                label="ABI (application binary interface)"
-                placeholder="ABI"
-                value={this.state.abiRaw}
-                onChange={this.handleChangeABI}
-              />
-            </Grid.Column>
-            <Grid.Column>
-              <Form.Input
-                inline
+                required
                 name="contractAddress"
-                label="Contract address"
+                label="Address"
                 placeholder="0xab123..."
                 value={this.state.contractAddress}
                 onChange={this.handleChange}
               />
               <Form.Input inline label="Network">
                 <Form.Dropdown
+                  required
                   placeholder="Mainnet, Ropsten, Rinkeby ..."
                   selection
                   inline
@@ -328,17 +380,83 @@ class App extends Component {
                   value={this.state.requiredNetwork}
                 />
               </Form.Input>
-              <Button color="green" content="Get Shareable Link" />
-              <br />
-              <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
-                OneClickDApp.com{this.state.mnemonic || '/ ...'}
-              </a>
-            </Grid.Column>
-            {this.renderRecentHistory()}
-            {this.renderUserHistory()}
-          </Grid>
-          <Message error header="Oops!" content={this.state.errorMessage} />
-        </Form>
+            </Form.Group>
+
+            <Form.TextArea
+              required
+              label={
+                <div>
+                  Interface ABI{' '}
+                  <Popup
+                    flowing
+                    hoverable
+                    trigger={<Icon name="question circle" />}
+                  >
+                    Issues with your Application Binary Interface? Be sure its
+                    in the proper formated listed in the{' '}
+                    <a href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#json">
+                      Solidity docs
+                    </a>.
+                  </Popup>
+                </div>
+              }
+              placeholder={`[{"constant": false,"inputs": [],"name": "distributeFunds", "outputs": [{"name": "","type": "bool"}],"payable": true, "stateMutability": "payable","type": "function"}...]`}
+              value={this.state.abiRaw}
+              onChange={this.handleChangeABI}
+            />
+            <Segment.Group horizontal>
+              <Segment disabled={!this.state.abi}>
+                <Header>Low Security</Header>
+                <Button icon="lightning" color="green" content="Create" />
+              </Segment>
+              <Segment disabled={!this.state.abi}>
+                <Header>High Security</Header>
+                <Button
+                  icon="lock"
+                  color="blue"
+                  name="currentDappFormStep"
+                  value={currentDappFormStep + 1}
+                  onClick={this.handleChange}
+                  content="Create Secure DApp"
+                />
+              </Segment>
+            </Segment.Group>
+            <Message error header="Oops!" content={this.state.errorMessage} />
+          </Form>
+          <br />
+        </div>
+      );
+    } else if (currentDappFormStep == 3) {
+      formDisplay = 'form step #2';
+    }
+
+    return (
+      <Segment>
+        <Menu secondary>
+          <Menu.Menu position="left">
+            <Menu.Item
+              disabled={!currentDappFormStep}
+              name="currentDappFormStep"
+              value={currentDappFormStep - 1 < 1 ? 0 : currentDappFormStep - 1}
+              Icon
+              onClick={this.handleChange}
+            >
+              <Icon name="arrow left" />Back
+            </Menu.Item>
+            <Menu.Item>
+              Progress:
+              <Progress
+                attached
+                value={currentDappFormStep}
+                total="3"
+                progress="ratio"
+                color="teal"
+              />
+            </Menu.Item>
+          </Menu.Menu>
+        </Menu>
+
+        {formDisplay}
       </Segment>
     );
   }
@@ -346,6 +464,9 @@ class App extends Component {
   renderInterface() {
     return (
       <div>
+        <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
+          OneClickDApp.com{this.state.mnemonic || '/ ...'}
+        </a>
         <Grid stackable columns={2}>
           <Grid.Column>
             <Header>
@@ -365,12 +486,12 @@ class App extends Component {
     );
   }
 
-  renderRecentHistory() {
+  renderGlobalHistory() {
     const { recentContracts } = this.state;
     return (
-      <Grid.Column>
+      <div>
         <Header>
-          <Icon name="globe" />User created DApps
+          <Icon name="globe" />Recent Public DApps
         </Header>
         <div className="vertical-menu">
           <Menu vertical>
@@ -390,15 +511,20 @@ class App extends Component {
             )}
           </Menu>
         </div>
-      </Grid.Column>
+      </div>
     );
   }
 
   renderUserHistory() {
-    const { userContracts } = this.state;
+    const { userContracts, account } = this.state;
     return (
-      <Grid.Column>
-        <Header>Your recent DApps</Header>
+      <div>
+        <Header>
+          <Icon name="save" /> Your DApps{' '}
+          {<Blockie config={{ size: 3 }} address={account} /> || (
+            <Icon name="user" />
+          )}
+        </Header>
         <div className="vertical-menu">
           <Menu vertical>
             {userContracts !== undefined && userContracts.length > 0 ? (
@@ -413,11 +539,11 @@ class App extends Component {
                 </Menu.Item>
               ))
             ) : (
-              <p>No contracts found.</p>
+              <Menu.Item key={0}>You haven't created anything yet</Menu.Item>
             )}
           </Menu>
         </div>
-      </Grid.Column>
+      </div>
     );
   }
 
@@ -577,38 +703,39 @@ class App extends Component {
       block,
       avgBlockTime,
       etherscan,
-      requiredNetwork
+      requiredNetwork,
+      displayDappForm
     } = this.state;
     let connectedDisplay = [];
     let contractsDisplay = [];
     if (web3) {
-      // connectedDisplay.push(
-      //   <Gas
-      //     key="Gas"
-      //     onUpdate={state => {
-      //       console.log('Gas price update:', state);
-      //       this.setState(state, () => {
-      //         console.log('GWEI set:', this.state);
-      //       });
-      //     }}
-      //   />
-      // );
       connectedDisplay.push(
-        <ContractLoader
-          web3={web3}
-          require={path => {
-            return require(`../../clevis`);
-          }}
-          onReady={contracts => {
-            console.log('contracts loaded', contracts);
-            this.setState({ contracts: contracts });
+        <Gas
+          key="Gas"
+          onUpdate={state => {
+            console.log('Gas price update:', state);
+            this.setState(state, () => {
+              console.log('GWEI set:', this.state);
+            });
           }}
         />
       );
       // connectedDisplay.push(
+      //   <ContractLoader
+      //     web3={web3}
+      //     require={path => {return require(`${__dirname}/${path}`)}}
+      //     onReady={(contracts)=>{
+      //       console.log("contracts loaded",contracts)
+      //       this.setState({contracts:contracts})
+      //     }}
+      //   />
+      // );
+      // debugger;
+      // if (contracts) {
+      // connectedDisplay.push(
       //   <Events
       //     config={{ hide: false }}
-      //     contract={contracts['custom']}
+      //     contract={contracts}
       //     eventName={'Create'}
       //     block={block}
       //     id={'_id'}
@@ -619,31 +746,39 @@ class App extends Component {
       //     }}
       //   />
       // );
-      connectedDisplay.push(
-        <Transactions
-          key="Transactions"
-          config={{ DEBUG: false }}
-          account={account}
-          gwei={gwei}
-          web3={web3}
-          block={block}
-          avgBlockTime={avgBlockTime}
-          etherscan={etherscan}
-          onReady={state => {
-            console.log('Transactions component is ready:', state);
-            this.setState(state);
-          }}
-          onReceipt={(transaction, receipt) => {
-            // this is one way to get the deployed contract address, but instead I'll switch
-            //  to a more straight forward callback system above
-            console.log('Transaction Receipt', transaction, receipt);
-          }}
-        />
-      );
+      if (!displayDappForm) {
+        connectedDisplay.push(
+          <Transactions
+            key="Transactions"
+            config={{ DEBUG: false }}
+            account={account}
+            gwei={gwei}
+            web3={web3}
+            block={block}
+            avgBlockTime={avgBlockTime}
+            etherscan={etherscan}
+            onReady={state => {
+              console.log('Transactions component is ready:', state);
+              this.setState(state);
+            }}
+            onReceipt={(transaction, receipt) => {
+              // this is one way to get the deployed contract address, but instead I'll switch
+              //  to a more straight forward callback system above
+              console.log('Transaction Receipt', transaction, receipt);
+            }}
+          />
+        );
+      }
     }
 
     if (this.state.hasError) {
       return <h1>Something went wrong.</h1>;
+    }
+    let mainDisplay = [];
+    if (displayDappForm) {
+      mainDisplay = this.renderDappForm();
+    } else {
+      mainDisplay = this.renderInterface();
     }
     return (
       <div className="App">
@@ -653,7 +788,8 @@ class App extends Component {
         <Dapparatus
           config={{
             DEBUG: false,
-            requiredNetwork: [requiredNetwork]
+            requiredNetwork: [requiredNetwork],
+            hide: displayDappForm
           }}
           metatx={METATX}
           fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
@@ -667,9 +803,8 @@ class App extends Component {
         />
         <p>Curently in alpha. Help make this open-source app awesome: </p>
         <a href="https://github.com/blockchainbuddha/one-click-DApps">Github</a>
-        {this.renderDappForm()}
+        {mainDisplay}
         {connectedDisplay}
-        {this.renderInterface()}
       </div>
     );
   }

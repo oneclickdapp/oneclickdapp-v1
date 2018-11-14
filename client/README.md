@@ -21,6 +21,7 @@ sudo npm link
 2.  Navigate to a new project folder, then
 
 ```
+npm link clevis
 clevis init
 ```
 

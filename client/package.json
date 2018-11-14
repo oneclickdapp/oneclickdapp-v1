@@ -5,11 +5,13 @@
   "proxy": "http://localhost:3001/",
   "dependencies": {
     "axios": "^0.18.0",
+    "clevis": "0.0.104",
     "react": "^16.5.0",
     "react-dom": "^16.5.0",
     "react-scripts": "1.1.5",
+    "s3": "^4.4.0",
     "semantic-ui-react": "^0.82.4",
-    "web3": "1.0.0-beta.26"
+    "web3": "^1.0.0-beta.26"
   },
   "scripts": {
     "start": "react-scripts start",
