@@ -51,6 +51,7 @@ class App extends Component {
       recentContracts: {},
       userContracts: {},
       //new from dapparatus
+      contracts: {},
       web3: false,
       account: false,
       gwei: 4,
@@ -63,18 +64,32 @@ class App extends Component {
     this.loadRecentContracts();
     this.loadUser();
   };
-
   loadExistingContract = () => {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 0) {
       axios
         .get(`/contracts${mnemonic}`)
         .then(result => {
+          // from contractLoader
+          let resultingContract = {};
+          let contract = new web3.eth.Contract(
+            result.data.abi,
+            result.data.contractAddress
+          );
+          resultingContract = contract.methods;
+          resultingContract._blocknumber = '';
+          resultingContract._address = result.data.contractAddress;
+          resultingContract._abi = result.data.abi;
+          resultingContract._contract = contract;
+          // from componentDidMount
+          let contracts = {};
+          contracts['custom'] = resultingContract;
           this.setState({
             requiredNetwork: result.data.network || '',
             contractName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
-            mnemonic: mnemonic
+            mnemonic: mnemonic,
+            contracts: contracts
           });
           this.handleChangeABI(
             {},
@@ -100,8 +115,9 @@ class App extends Component {
   };
 
   loadUser = () => {
+    const { account } = this.state;
     axios
-      .get(`/user/abc`)
+      .get(`/user/${account}`)
       .then(response => {
         this.setState({ userContracts: response.data });
       })
@@ -153,7 +169,12 @@ class App extends Component {
   };
 
   handleGenerateURL = () => {
-    const { contractName, contractAddress, abiRaw, requiredNetwork } = this.state;
+    const {
+      contractName,
+      contractAddress,
+      abiRaw,
+      requiredNetwork
+    } = this.state;
     const abi = JSON.parse(abiRaw);
     console.log('Generating unique URL...' + contractAddress);
     axios
@@ -560,57 +581,66 @@ class App extends Component {
     } = this.state;
     let connectedDisplay = [];
     let contractsDisplay = [];
-    // if (web3) {
-    // connectedDisplay.push(
-    //   <Gas
-    //     key="Gas"
-    //     onUpdate={state => {
-    //       console.log('Gas price update:', state);
-    //       this.setState(state, () => {
-    //         console.log('GWEI set:', this.state);
-    //       });
-    //     }}
-    //   />
-    // );
-    // connectedDisplay.push(
-    //   <ContractLoader
-    //     key="ContractLoader"
-    //     config={{ DEBUG: true }}
-    //     web3={web3}
-    //     require={path => {
-    //       return require(`${__dirname}/${path}`);
-    //     }}
-    //     onReady={(contracts, customLoader) => {
-    //       console.log('contracts loaded', contracts);
-    //       this.setState({ contracts: contracts }, async () => {
-    //         console.log('Contracts Are Ready:', this.state.contracts);
-    //       });
-    //     }}
-    //   />
-    // );
-    // connectedDisplay.push(
-    //   <Transactions
-    //     key="Transactions"
-    //     config={{ DEBUG: false }}
-    //     account={account}
-    //     gwei={gwei}
-    //     web3={web3}
-    //     block={block}
-    //     avgBlockTime={avgBlockTime}
-    //     etherscan={etherscan}
-    //     onReady={state => {
-    //       console.log('Transactions component is ready:', state);
-    //       this.setState(state);
-    //     }}
-    //     onReceipt={(transaction, receipt) => {
-    //       // this is one way to get the deployed contract address, but instead I'll switch
-    //       //  to a more straight forward callback system above
-    //       console.log('Transaction Receipt', transaction, receipt);
-    //     }}
-    //   />
-    // );
-
-    //}
+    if (web3) {
+      // connectedDisplay.push(
+      //   <Gas
+      //     key="Gas"
+      //     onUpdate={state => {
+      //       console.log('Gas price update:', state);
+      //       this.setState(state, () => {
+      //         console.log('GWEI set:', this.state);
+      //       });
+      //     }}
+      //   />
+      // );
+      connectedDisplay.push(
+        <ContractLoader
+          web3={web3}
+          require={path => {
+            return require(`../../clevis`);
+          }}
+          onReady={contracts => {
+            console.log('contracts loaded', contracts);
+            this.setState({ contracts: contracts });
+          }}
+        />
+      );
+      // connectedDisplay.push(
+      //   <Events
+      //     config={{ hide: false }}
+      //     contract={contracts['custom']}
+      //     eventName={'Create'}
+      //     block={block}
+      //     id={'_id'}
+      //     filter={{}}
+      //     onUpdate={(eventData, allEvents) => {
+      //       console.log('EVENT DATA:', eventData);
+      //       this.setState({ events: allEvents });
+      //     }}
+      //   />
+      // );
+      connectedDisplay.push(
+        <Transactions
+          key="Transactions"
+          config={{ DEBUG: false }}
+          account={account}
+          gwei={gwei}
+          web3={web3}
+          block={block}
+          avgBlockTime={avgBlockTime}
+          etherscan={etherscan}
+          onReady={state => {
+            console.log('Transactions component is ready:', state);
+            this.setState(state);
+          }}
+          onReceipt={(transaction, receipt) => {
+            // this is one way to get the deployed contract address, but instead I'll switch
+            //  to a more straight forward callback system above
+            console.log('Transaction Receipt', transaction, receipt);
+          }}
+        />
+      );
+    }
 
     if (this.state.hasError) {
       return <h1>Something went wrong.</h1>;
@@ -622,25 +652,24 @@ class App extends Component {
         </header>
         <Dapparatus
           config={{
-            DEBUG:false,
-            requiredNetwork:[requiredNetwork],
+            DEBUG: false,
+            requiredNetwork: [requiredNetwork]
           }}
           metatx={METATX}
           fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
-          onUpdate={(state)=>{
-           console.log("metamask state update:",state)
-           if(state.web3Provider) {
-             state.web3 = new Web3(state.web3Provider)
-             this.setState(state)
-           }
+          onUpdate={state => {
+            console.log('metamask state update:', state);
+            if (state.web3Provider) {
+              state.web3 = new Web3(state.web3Provider);
+              this.setState(state);
+            }
           }}
         />
         <p>Curently in alpha. Help make this open-source app awesome: </p>
         <a href="https://github.com/blockchainbuddha/one-click-DApps">Github</a>
         {this.renderDappForm()}
-        {this.renderInterface()}
         {connectedDisplay}
-        {contractsDisplay}
+        {this.renderInterface()}
       </div>
     );
   }
