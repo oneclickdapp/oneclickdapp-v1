@@ -12,7 +12,11 @@ import {
   Progress,
   Divider,
   Popup,
-  Container
+  Container,
+  Table,
+  Link,
+  Image,
+  Transition
 } from 'semantic-ui-react';
 import {
   Dapparatus,
@@ -30,6 +34,10 @@ import web3 from './ethereum/web3';
 import moment from 'moment';
 import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
 const axios = require('axios');
+// Contract loading
+const contractsDirectory =
+  './externalContracts/myEtherWallet/src/contracts/eth';
+const fs = require('fs');
 //Dapparatus
 const METATX = {
   endpoint: 'http://0.0.0.0:10001/',
@@ -37,26 +45,33 @@ const METATX = {
   //accountGenerator: "//account.metatx.io",
 };
 const WEB3_PROVIDER = 'http://0.0.0.0:8545';
+// assets
+const chelsea = require('./assets/chelsea.png');
+const boulder = require('./assets/boulder.png');
+const cloud = require('./assets/cloud.png');
+const tablet = require('./assets/tablet.png');
+const trirame = require('./assets/triframe.png');
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
       abi: '',
-      abiRaw: '',
-      requiredNetwork: '',
-      contractAddress: '',
+      abiRaw: JSON.stringify(sampleABI),
+      requiredNetwork: 'Roptsen',
+      contractAddress: '0x5f462bcCD7617D0B81feEf9e4B0C9Af0909eA980',
+      contractName: 'User',
       errorMessage: '',
       errorMessageView: '',
       loading: false,
       methodData: [],
-      contractName: '',
       mnemonic: '',
       recentContracts: {},
-      userContracts: {},
+      userSavedContracts: {},
       // Display states
       displayDappForm: true,
-      currentDappFormStep: 2,
+      currentDappFormStep: 0,
+      displayLoading: false,
       //new from dapparatus
       web3: false,
       account: false,
@@ -64,21 +79,27 @@ class App extends Component {
       doingTransaction: false
     };
   }
-
   componentDidMount = async () => {
-    this.loadExistingContract();
-    this.loadRecentContracts();
+    this.loadURLContract();
+    this.loadRecentPublicContracts();
   };
-
   componentDidUpdate() {
-    if (!this.state.account) {
-      this.loadUser();
+    if (this.state.account) {
+      this.loadUserSavedContracts();
     }
   }
-
-  loadExistingContract = () => {
+  loadURLContract = () => {
     const mnemonic = window.location.pathname;
-    if (mnemonic.length > 0) {
+    if (mnemonic.length > 1) {
+      const loading = (
+        <div>
+          <Icon loading name="spinner" /> Loading dApp...
+        </div>
+      );
+      this.setState({
+        displayDappForm: false,
+        displayLoading: loading
+      });
       axios
         .get(`/contracts${mnemonic}`)
         .then(result => {
@@ -101,7 +122,8 @@ class App extends Component {
             contractName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
             mnemonic: mnemonic,
-            displayDappForm: false
+            displayDappForm: false,
+            displayLoading: false
           });
           this.handleChangeABI(
             {},
@@ -115,8 +137,7 @@ class App extends Component {
       this.handleChangeABI({}, { value: this.state.abiRaw });
     }
   };
-
-  loadRecentContracts = () => {
+  loadRecentPublicContracts = () => {
     axios
       .get(`/contracts/recentContracts`)
       .then(response => {
@@ -125,27 +146,47 @@ class App extends Component {
 
       .catch(err => console.log(err));
   };
-
-  loadUser = () => {
+  loadUserSavedContracts = () => {
     const { account } = this.state;
     axios
       .get(`/user/${account}`)
       .then(response => {
-        this.setState({ userContracts: response.data });
+        this.setState({ userSavedContracts: response.data });
       })
       .catch(err => console.log(err));
   };
-
+  loadExternalContracts = () => {
+    // fs.readdirSync(`${contractsDirectory}`).forEach(file => {
+    //   if (
+    //     path.extname(file) === '.json' &&
+    //     web3.utils.isAddress(file.replace('.json', ''))
+    //   ) {
+    //     const fullPath = `${contractsDirectory}/${folder}/${file}`;
+    //     const obj = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    //     validateObject(constraints, obj, fullPath);
+    //     if (validate(obj, constraints) !== undefined) {
+    //       const errs = validate(obj, constraints);
+    //       Object.keys(errs).forEach(key => {
+    //         console.log(
+    //           `${errs[key][0]} for ${file} in ${contractsDirectory}/${folder}`
+    //         );
+    //       });
+    //       process.exit(1);
+    //     }
+    //   } else {
+    //     console.log('Incorrect file name or file extension');
+    //     process.exit(1);
+    //   }
+    // });
+  };
   handleChange = (e, { name, value }) => {
     this.setState({ [name]: value });
   };
-
   handleInput(e) {
     let update = {};
     update[e.target.name] = e.target.value;
     this.setState(update);
   }
-
   handleChangeABI = (e, { value }) => {
     this.setState({ abiRaw: value, loading: true });
     const { contractAddress } = this.state;
@@ -170,7 +211,6 @@ class App extends Component {
     }
     this.setState({ loading: false });
   };
-
   // Takes inputs from the user and stores them to JSON object methodArguments
   handleMethodDataChange = (e, { name, value, inputindex }) => {
     let newMethodData = this.state.methodData;
@@ -179,23 +219,23 @@ class App extends Component {
     this.setState({ methodData: newMethodData });
     // console.log(JSON.stringify(this.state.methodData));
   };
-
-  handleGenerateURL = () => {
+  handleGenerateDapp = () => {
     const {
       contractName,
       contractAddress,
       abiRaw,
-      requiredNetwork
+      requiredNetwork,
+      account
     } = this.state;
     const abi = JSON.parse(abiRaw);
-    console.log('Generating unique URL...' + contractAddress);
+    console.log('Generating unique URL...' + account);
     axios
       .post(`/contracts`, {
         contractName,
         contractAddress,
         abi,
         network: requiredNetwork,
-        walletAddress: 'abc'
+        creatorAddress: account
       })
       .then(res => {
         window.location.pathname = `${res.data.mnemonic}`;
@@ -205,7 +245,6 @@ class App extends Component {
       })
       .then(res => {});
   };
-
   // send() methods alter the contract state, and require gas.
   handleSubmitSend = (e, { name }) => {
     console.log("Performing function 'send()'...");
@@ -242,7 +281,6 @@ class App extends Component {
       }
     }
   };
-
   // call() methods do not alter the contract state. No gas needed.
   handleSubmitCall = (e, { name }) => {
     const { abi, contractAddress, methodData } = this.state;
@@ -273,7 +311,6 @@ class App extends Component {
       this.setState({ errorMessageView: err.message });
     }
   };
-
   createMethodData = name => {
     var newMethodData = this.state.methodData;
     // Check whether the method exists in the arguments list
@@ -285,16 +322,17 @@ class App extends Component {
     }
     return newMethodData;
   };
-
   renderDappForm() {
     const { currentDappFormStep } = this.state;
     let formDisplay = [];
-
     if (currentDappFormStep < 1) {
       formDisplay = (
         <div>
           <Header>Hi, I'm Chelsea!</Header>
-          <p>Let's creat a DApp...</p>
+          <Transition animation="jiggle" visible>
+            <Image centered size="medium" src={chelsea} />
+          </Transition>
+
           <Button
             color="green"
             icon="thumbs up"
@@ -311,13 +349,12 @@ class App extends Component {
         <div>
           <Header as="h2" icon textAlign="center">
             <Icon name="pencil alternate" circular />
-            Enter your contract's Name
+            Enter your dApp's Name
           </Header>
           <Header as="h3">
             <Icon name="search" />or find an existing one
           </Header>
           <Form
-            textAlign="center"
             error={!!this.state.errorMessage}
             onSubmit={() => this.setState({ currentDappFormStep: 2 })}
           >
@@ -330,7 +367,8 @@ class App extends Component {
               onChange={this.handleChange}
             />
           </Form>
-          <Grid columns={2} centered>
+          <Divider />
+          <Grid columns={2} centered stackable>
             <Grid.Column>{this.renderUserHistory()}</Grid.Column>
             <Grid.Column>{this.renderGlobalHistory()}</Grid.Column>
           </Grid>
@@ -346,7 +384,7 @@ class App extends Component {
           <Form
             textAlign="center"
             error={!!this.state.errorMessage}
-            onSubmit={this.handleGenerateURL}
+            onSubmit={this.handleGenerateDapp}
           >
             <Form.Group inline>
               <Form.Input
@@ -394,7 +432,10 @@ class App extends Component {
                   >
                     Issues with your Application Binary Interface? Be sure its
                     in the proper formated listed in the{' '}
-                    <a href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#json">
+                    <a
+                      target="_blank"
+                      href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#json"
+                    >
                       Solidity docs
                     </a>.
                   </Popup>
@@ -404,13 +445,21 @@ class App extends Component {
               value={this.state.abiRaw}
               onChange={this.handleChangeABI}
             />
-            <Segment.Group horizontal>
+            <Segment.Group vertical>
               <Segment disabled={!this.state.abi}>
-                <Header>Low Security</Header>
+                <Header>
+                  Low Security
+                  <Header.Subheader>Instant</Header.Subheader>
+                </Header>
                 <Button icon="lightning" color="green" content="Create" />
               </Segment>
               <Segment disabled={!this.state.abi}>
-                <Header>High Security</Header>
+                <Header>
+                  High Security
+                  <Header.Subheader>
+                    <Icon name="time" />>30s
+                  </Header.Subheader>
+                </Header>
                 <Button
                   icon="lock"
                   color="blue"
@@ -438,7 +487,7 @@ class App extends Component {
               disabled={!currentDappFormStep}
               name="currentDappFormStep"
               value={currentDappFormStep - 1 < 1 ? 0 : currentDappFormStep - 1}
-              Icon
+              icon
               onClick={this.handleChange}
             >
               <Icon name="arrow left" />Back
@@ -446,7 +495,6 @@ class App extends Component {
             <Menu.Item>
               Progress:
               <Progress
-                attached
                 value={currentDappFormStep}
                 total="3"
                 progress="ratio"
@@ -460,7 +508,6 @@ class App extends Component {
       </Segment>
     );
   }
-
   renderInterface() {
     return (
       <div>
@@ -485,68 +532,116 @@ class App extends Component {
       </div>
     );
   }
-
   renderGlobalHistory() {
     const { recentContracts } = this.state;
     return (
       <div>
-        <Header>
-          <Icon name="globe" />Recent Public DApps
+        <Header textAlign="center" as="h3" icon>
+          <Icon name="globe" />Recent Public dApps
         </Header>
-        <div className="vertical-menu">
-          <Menu vertical>
-            {recentContracts.length > 0 ? (
-              recentContracts.map((contract, index) => (
-                <Menu.Item
-                  key={index}
-                  href={`//oneclickdapp.com/${contract.mnemonic}`}
-                >
-                  <Menu.Header>{contract.contractName}</Menu.Header>
-                  {contract.network.toUpperCase()} Network <br />Created{' '}
-                  {moment(contract.createdAt).fromNow()}
-                </Menu.Item>
-              ))
-            ) : (
-              <p>No contracts found.</p>
-            )}
-          </Menu>
+        <div style={{ overflow: 'auto', maxHeight: 300 }}>
+          {recentContracts.length > 0 ? (
+            <Table unstackable selectable basic="very">
+              <Table.Header>
+                <Table.Row textAlign="center">
+                  <Table.HeaderCell>
+                    <Icon name="pencil" />
+                  </Table.HeaderCell>
+                  <Table.HeaderCell>
+                    <Icon name="user" />
+                  </Table.HeaderCell>
+                  <Table.HeaderCell>
+                    <Icon name="ethereum" />
+                  </Table.HeaderCell>
+                  <Table.HeaderCell>
+                    <Icon name="clock outline" />
+                  </Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {recentContracts.map((contract, index) => (
+                  <Table.Row
+                    key={index}
+                    onClick={() => {
+                      window.location.pathname = `${contract.mnemonic}`;
+                    }}
+                  >
+                    <Table.Cell>{contract.contractName}</Table.Cell>
+                    <Table.Cell>
+                      <Blockie
+                        floated
+                        config={{ size: 3 }}
+                        address={contract.creatorAddress}
+                      />
+                    </Table.Cell>
+                    <Table.Cell>{contract.network}</Table.Cell>
+                    <Table.Cell>
+                      {moment(contract.createdAt).fromNow()}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          ) : (
+            <Segment textAlign="center">Loading...</Segment>
+          )}
         </div>
       </div>
     );
   }
-
   renderUserHistory() {
-    const { userContracts, account } = this.state;
+    const { userSavedContracts, account } = this.state;
     return (
       <div>
-        <Header>
-          <Icon name="save" /> Your DApps{' '}
-          {<Blockie config={{ size: 3 }} address={account} /> || (
+        <Header textAlign="center" as="h3" icon>
+          <Icon name="save" />
+          {<Blockie floated config={{ size: 2 }} address={account} /> || (
             <Icon name="user" />
-          )}
+          )}{' '}
+          Saved dApps
         </Header>
-        <div className="vertical-menu">
-          <Menu vertical>
-            {userContracts !== undefined && userContracts.length > 0 ? (
-              userContracts.map((contract, index) => (
-                <Menu.Item
-                  key={index}
-                  href={`//oneclickdapp.com/${contract.mnemonic}`}
-                >
-                  <Menu.Header>{contract.contractName}</Menu.Header>
-                  {contract.network.toUpperCase()} Network <br />Created{' '}
-                  {moment(contract.createdAt).fromNow()}
-                </Menu.Item>
-              ))
-            ) : (
-              <Menu.Item key={0}>You haven't created anything yet</Menu.Item>
-            )}
-          </Menu>
+        <div style={{ overflow: 'auto', maxHeight: 300 }}>
+          {userSavedContracts !== undefined && userSavedContracts.length > 0 ? (
+            <Table unstackable basic="very">
+              <Table.Header>
+                <Table.Row textAlign="center">
+                  <Table.HeaderCell>
+                    <Icon name="pencil" />
+                  </Table.HeaderCell>
+                  <Table.HeaderCell>
+                    <Icon name="ethereum" />
+                  </Table.HeaderCell>
+                  <Table.HeaderCell>
+                    <Icon name="clock outline" />
+                  </Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {userSavedContracts.map((contract, index) => (
+                  <Table.Row
+                    key={index}
+                    onClick={() => {
+                      window.location.pathname = `${contract.mnemonic}`;
+                    }}
+                  >
+                    <Table.Cell>{contract.contractName}</Table.Cell>
+                    <Table.Cell>{contract.network}</Table.Cell>
+                    <Table.Cell>
+                      {moment(contract.createdAt).fromNow()}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          ) : (
+            <Segment textAlign="center">
+              You haven't created anything yet
+            </Segment>
+          )}
         </div>
       </div>
     );
   }
-
   renderSends() {
     var forms = []; // Each Method gets a form
     if (this.state.abi) {
@@ -626,7 +721,6 @@ class App extends Component {
       }
     }
   }
-
   renderCalls() {
     const { abi, methodData } = this.state;
     var forms = []; // Each View gets a form
@@ -692,7 +786,6 @@ class App extends Component {
     }
     return <div>{forms}</div>;
   }
-
   render() {
     let {
       web3,
@@ -704,7 +797,8 @@ class App extends Component {
       avgBlockTime,
       etherscan,
       requiredNetwork,
-      displayDappForm
+      displayDappForm,
+      displayLoading
     } = this.state;
     let connectedDisplay = [];
     let contractsDisplay = [];
@@ -775,23 +869,26 @@ class App extends Component {
       return <h1>Something went wrong.</h1>;
     }
     let mainDisplay = [];
-    if (displayDappForm) {
+    if (displayLoading) {
+      mainDisplay = displayLoading;
+    } else if (displayDappForm) {
       mainDisplay = this.renderDappForm();
     } else {
       mainDisplay = this.renderInterface();
     }
     return (
       <div className="App">
-        <header className="App-header">
-          <h1 className="App-title">One Click DApp</h1>
-        </header>
+        <Header as="h1" textAlign="left">
+          One Click dApp
+        </Header>
+
         <Dapparatus
           config={{
             DEBUG: false,
             requiredNetwork: [requiredNetwork],
             hide: displayDappForm
           }}
-          metatx={METATX}
+          // metatx={METATX}
           fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
           onUpdate={state => {
             console.log('metamask state update:', state);
@@ -801,10 +898,26 @@ class App extends Component {
             }
           }}
         />
-        <p>Curently in alpha. Help make this open-source app awesome: </p>
-        <a href="https://github.com/blockchainbuddha/one-click-DApps">Github</a>
+
+        <Divider />
         {mainDisplay}
         {connectedDisplay}
+        <Divider />
+        <p>
+          Made by Patrick Gallagher{' '}
+          <a
+            target="_blank"
+            href="https://github.com/blockchainbuddha/one-click-DApps"
+          >
+            <Icon name="github" size="large" />
+            Github
+          </a>
+          {'  '}
+          <a target="_blank" href="https://twitter.com/pi0neerpat">
+            <Icon name="twitter" size="large" />
+            Twitter
+          </a>
+        </p>
       </div>
     );
   }

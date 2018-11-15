@@ -1,38 +1,38 @@
 // Dependencies
-const _ = require("lodash");
-const express = require("express");
+const _ = require('lodash');
+const express = require('express');
 
 // Database toolds
-const bodyParser = require("body-parser");
+const bodyParser = require('body-parser');
 
-require("./db/config"); // Database login secrets
-var { db } = require("./db/mongoose");
-var { Contract } = require("./models/contract");
-var { User } = require("./models/user");
+require('./db/config'); // Database login secrets
+var { db } = require('./db/mongoose');
+var { Contract } = require('./models/contract');
+var { User } = require('./models/user');
 
-var mnGen = require("mngen"); // Random word generator
+var mnGen = require('mngen'); // Random word generator
 
 var app = express();
-app.set("port", process.env.PORT || 3001);
+app.set('port', process.env.PORT || 3001);
 // Express only serves static assets in production
 app.use(bodyParser.json());
 
-app.post("/contracts", (req, res) => {
+app.post('/contracts', (req, res) => {
   const contractName = req.body.contractName;
   const abi = req.body.abi;
   const contractAddress = req.body.contractAddress;
   const network = req.body.network;
-  const walletAddress = req.body.walletAddress.toLowerCase();
+  const creatorAddress = req.body.creatorAddress.toLowerCase();
   // Generate the mnemonic word for the URL
   const mnemonic = mnGen.word(2);
   const currentTime = Date.now();
 
-  console.log(" ");
-  console.log("################## POST #####################");
+  console.log(' ');
+  console.log('################## POST #####################');
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
-  console.log(`User wallet address: ${walletAddress}`);
+  console.log(`Creator address: ${creatorAddress}`);
   console.log(`Current time: ${currentTime}`);
   console.log(`URL: www.oneclickdapp.com/${mnemonic}`);
   var contract = new Contract({
@@ -41,15 +41,19 @@ app.post("/contracts", (req, res) => {
     contractAddress: contractAddress,
     network: network,
     mnemonic: mnemonic,
-    createdAt: currentTime
+    createdAt: currentTime,
+    creatorAddress
   });
 
   User.findOneAndUpdate(
-    { walletAddress: walletAddress },
+    { creatorAddress },
     { $push: { savedDapps: mnemonic } },
     {
-      new: true,
-      upsert: true
+      upsert: true,
+      new: true
+    },
+    function() {
+      console.log('User created/updated successfully!');
     }
   );
 
@@ -63,7 +67,7 @@ app.post("/contracts", (req, res) => {
   );
 });
 
-app.get("/contracts/recentContracts", (req, res) => {
+app.get('/contracts/recentContracts', (req, res) => {
   Contract.find()
     .sort({ _id: -1 })
     .limit(10)
@@ -74,7 +78,8 @@ app.get("/contracts/recentContracts", (req, res) => {
           contractName: contract.contractName,
           network: contract.network,
           mnemonic: contract.mnemonic,
-          createdAt: contract._id.getTimestamp()
+          createdAt: contract._id.getTimestamp(),
+          creatorAddress: contract.creatorAddress
         };
         recentContracts.push(contractData);
       });
@@ -88,10 +93,10 @@ app.get("/contracts/recentContracts", (req, res) => {
     });
 });
 
-app.get("/contracts/:mnemonic", (req, res) => {
+app.get('/contracts/:mnemonic', (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
-  console.log(" ");
-  console.log("################## GET  #####################");
+  console.log(' ');
+  console.log('################## GET  #####################');
   console.log(`Retrieving contract for mnemonic: ${mnemonic}`);
 
   Contract.find({ mnemonic: mnemonic })
@@ -121,13 +126,13 @@ app.get("/contracts/:mnemonic", (req, res) => {
     });
 });
 
-app.get("/user/:walletAddress", (req, res) => {
-  var walletAddress = req.params.walletAddress.toLowerCase();
-  console.log(" ");
-  console.log("################## GET  #####################");
-  console.log(`Retrieving contracts for user wallet: ${walletAddress}`);
+app.get('/user/:creatorAddress', (req, res) => {
+  var creatorAddress = req.params.creatorAddress.toLowerCase();
+  console.log(' ');
+  console.log('################## GET  #####################');
+  console.log(`Retrieving contracts for user address: ${creatorAddress}`);
 
-  User.findOne({ walletAddress })
+  User.findOne({ creatorAddress })
     .then(user => {
       mnemonics = user.savedDapps;
       if (mnemonics !== undefined && mnemonics.length > 0) {
@@ -138,7 +143,7 @@ app.get("/user/:walletAddress", (req, res) => {
             res.send(dapps);
           });
       } else {
-        res.status(400).send(`User not found: ${wallletAddress}`);
+        res.status(400).send(`User not found: ${creatorAddress}`);
       }
     })
     .catch(function(err) {
@@ -148,20 +153,20 @@ app.get("/user/:walletAddress", (req, res) => {
 });
 
 // Return the front-end for all other GET calls
-if (process.env.NODE_ENV === "production") {
-  app.set("port", 80);
-  app.use(express.static("client/build"));
-  app.use("*", express.static("client/build"));
+if (process.env.NODE_ENV === 'production') {
+  app.set('port', 80);
+  app.use(express.static('client/build'));
+  app.use('*', express.static('client/build'));
 }
 
-app.listen(app.get("port"), () => {
+app.listen(app.get('port'), () => {
   console.log(
     `_______________________________________________________________`
   );
   console.log(` `);
   console.log(`################# oneClickDApp API Server ####################`);
   console.log(` `);
-  console.log(`Started on port ${app.get("port")}`);
+  console.log(`Started on port ${app.get('port')}`);
   console.log(`______________________________________________________________`);
   console.log(` `);
 });

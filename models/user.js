@@ -1,7 +1,7 @@
-var mongoose = require("mongoose");
+var mongoose = require('mongoose');
 
-var User = mongoose.model("User", {
-  walletAddress: {
+var User = mongoose.model('User', {
+  creatorAddress: {
     type: String,
     required: true
   },
