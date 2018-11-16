@@ -6,6 +6,8 @@
   "dependencies": {
     "axios": "^0.18.0",
     "clevis": "0.0.104",
+    "lodash": "^4.17.11",
+    "prop-types": "^15.6.2",
     "react": "^16.5.0",
     "react-dom": "^16.5.0",
     "react-scripts": "1.1.5",

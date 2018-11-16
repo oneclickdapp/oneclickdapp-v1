@@ -16,7 +16,8 @@ import {
   Table,
   Link,
   Image,
-  Transition
+  Transition,
+  Search
 } from 'semantic-ui-react';
 import {
   Dapparatus,
@@ -32,12 +33,11 @@ import {
 import Web3 from 'web3';
 import web3 from './ethereum/web3';
 import moment from 'moment';
+import _ from 'lodash';
 import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
+import PropTypes from 'prop-types';
+
 const axios = require('axios');
-// Contract loading
-const contractsDirectory =
-  './externalContracts/myEtherWallet/src/contracts/eth';
-const fs = require('fs');
 //Dapparatus
 const METATX = {
   endpoint: 'http://0.0.0.0:10001/',
@@ -50,7 +50,7 @@ const chelsea = require('./assets/chelsea.png');
 const boulder = require('./assets/boulder.png');
 const cloud = require('./assets/cloud.png');
 const tablet = require('./assets/tablet.png');
-const trirame = require('./assets/triframe.png');
+const triframe = require('./assets/triframe.png');
 
 class App extends Component {
   constructor(props) {
@@ -60,7 +60,7 @@ class App extends Component {
       abiRaw: JSON.stringify(sampleABI),
       requiredNetwork: 'Roptsen',
       contractAddress: '0x5f462bcCD7617D0B81feEf9e4B0C9Af0909eA980',
-      contractName: 'User',
+      contractName: 'cry',
       errorMessage: '',
       errorMessageView: '',
       loading: false,
@@ -68,10 +68,16 @@ class App extends Component {
       mnemonic: '',
       recentContracts: {},
       userSavedContracts: {},
+      externalContracts: [],
+      userHasBeenLoaded: false,
+      //Search
+      results: '',
+      isLoading: false,
       // Display states
+      currentDappFormStep: 1,
       displayDappForm: true,
-      currentDappFormStep: 0,
       displayLoading: false,
+      displayGeneratingDapp: true,
       //new from dapparatus
       web3: false,
       account: false,
@@ -80,15 +86,16 @@ class App extends Component {
     };
   }
   componentDidMount = async () => {
-    this.loadURLContract();
-    this.loadRecentPublicContracts();
+    this.getURLContract();
+    this.getRecentPublicContracts();
+    this.getExternalContracts();
   };
   componentDidUpdate() {
-    if (this.state.account) {
-      this.loadUserSavedContracts();
+    if (!this.state.userHasBeenLoaded && this.state.account) {
+      this.getUserSavedContracts();
     }
   }
-  loadURLContract = () => {
+  getURLContract = () => {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 1) {
       const loading = (
@@ -137,7 +144,7 @@ class App extends Component {
       this.handleChangeABI({}, { value: this.state.abiRaw });
     }
   };
-  loadRecentPublicContracts = () => {
+  getRecentPublicContracts = () => {
     axios
       .get(`/contracts/recentContracts`)
       .then(response => {
@@ -146,38 +153,27 @@ class App extends Component {
 
       .catch(err => console.log(err));
   };
-  loadUserSavedContracts = () => {
+  getUserSavedContracts = () => {
     const { account } = this.state;
     axios
       .get(`/user/${account}`)
       .then(response => {
-        this.setState({ userSavedContracts: response.data });
+        this.setState({
+          userSavedContracts: response.data,
+          userHasBeenLoaded: true
+        });
       })
       .catch(err => console.log(err));
   };
-  loadExternalContracts = () => {
-    // fs.readdirSync(`${contractsDirectory}`).forEach(file => {
-    //   if (
-    //     path.extname(file) === '.json' &&
-    //     web3.utils.isAddress(file.replace('.json', ''))
-    //   ) {
-    //     const fullPath = `${contractsDirectory}/${folder}/${file}`;
-    //     const obj = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-    //     validateObject(constraints, obj, fullPath);
-    //     if (validate(obj, constraints) !== undefined) {
-    //       const errs = validate(obj, constraints);
-    //       Object.keys(errs).forEach(key => {
-    //         console.log(
-    //           `${errs[key][0]} for ${file} in ${contractsDirectory}/${folder}`
-    //         );
-    //       });
-    //       process.exit(1);
-    //     }
-    //   } else {
-    //     console.log('Incorrect file name or file extension');
-    //     process.exit(1);
-    //   }
-    // });
+  getExternalContracts = () => {
+    axios
+      .get(`/contracts/externalContracts`)
+      .then(response => {
+        this.setState({
+          externalContracts: response.data.externalContracts
+        });
+      })
+      .catch(err => console.log(err));
   };
   handleChange = (e, { name, value }) => {
     this.setState({ [name]: value });
@@ -227,6 +223,18 @@ class App extends Component {
       requiredNetwork,
       account
     } = this.state;
+    const displayLoading = (
+      <div>
+        <Header>
+          <Icon loading name="load" />Creating your dApp...
+        </Header>
+        <Image centered src={triframe} />
+      </div>
+    );
+    this.setState({
+      currentDappFormStep: 3,
+      displayLoading
+    });
     const abi = JSON.parse(abiRaw);
     console.log('Generating unique URL...' + account);
     axios
@@ -311,6 +319,29 @@ class App extends Component {
       this.setState({ errorMessageView: err.message });
     }
   };
+  resetComponent = () =>
+    this.setState({ isLoading: false, results: [], contractName: '' });
+  handleResultSelect = (e, { result }) => {
+    this.setState({
+      contractName: result.name,
+      requiredNetwork: 'Mainnet',
+      contractAddress: result.address,
+      abiRaw: JSON.stringify(result.abi),
+      currentDappFormStep: 2
+    });
+  };
+  handleSearchChange = (e, { value }) => {
+    this.setState({ isLoading: true, contractName: value });
+    setTimeout(() => {
+      if (this.state.contractName.length < 1) return this.resetComponent();
+      const re = new RegExp(_.escapeRegExp(this.state.contractName), 'i');
+      const isMatch = result => re.test(result.name);
+      this.setState({
+        isLoading: false,
+        results: _.filter(this.state.externalContracts, isMatch)
+      });
+    }, 300);
+  };
   createMethodData = name => {
     var newMethodData = this.state.methodData;
     // Check whether the method exists in the arguments list
@@ -323,15 +354,15 @@ class App extends Component {
     return newMethodData;
   };
   renderDappForm() {
-    const { currentDappFormStep } = this.state;
+    const { currentDappFormStep, displayLoading } = this.state;
     let formDisplay = [];
-    if (currentDappFormStep < 1) {
+    if (displayLoading) {
+      formDisplay = displayLoading;
+    } else if (currentDappFormStep < 1) {
       formDisplay = (
         <div>
           <Header>Hi, I'm Chelsea!</Header>
-          <Transition animation="jiggle" visible>
-            <Image centered size="medium" src={chelsea} />
-          </Transition>
+          <Image centered size="medium" src={chelsea} />
 
           <Button
             color="green"
@@ -345,41 +376,65 @@ class App extends Component {
         </div>
       );
     } else if (currentDappFormStep == 1) {
-      formDisplay = (
+      const resultRenderer = ({ name, source }) => (
         <div>
-          <Header as="h2" icon textAlign="center">
-            <Icon name="pencil alternate" circular />
-            Enter your dApp's Name
-          </Header>
-          <Header as="h3">
-            <Icon name="search" />or find an existing one
+          <Table.Row>
+            <Table.Cell>
+              <Header>{name}</Header>
+            </Table.Cell>
+            <Table.Cell>{source}</Table.Cell>
+          </Table.Row>
+        </div>
+      );
+      resultRenderer.propTypes = {
+        name: PropTypes.string,
+        source: PropTypes.string,
+        address: PropTypes.string,
+        abi: PropTypes.object
+      };
+      formDisplay = (
+        <Segment textAlign="center">
+          <Image centered size="small" src={tablet} />
+          <Header as="h2">
+            Create a new dApp
+            <Header.Subheader>
+              or clone an existing one <Icon name="clone" />
+            </Header.Subheader>
           </Header>
           <Form
             error={!!this.state.errorMessage}
             onSubmit={() => this.setState({ currentDappFormStep: 2 })}
           >
-            <Form.Input
-              inline
-              required={true}
-              name="contractName"
-              placeholder="myDApp"
-              value={this.state.contractName}
-              onChange={this.handleChange}
-            />
+            <Grid>
+              <Grid.Column>
+                <Search
+                  size="large"
+                  noResultsMessage="Hit `Enter` to create a new dApp!"
+                  loading={this.state.isLoading}
+                  onSearchChange={_.debounce(this.handleSearchChange, 500, {
+                    leading: true
+                  })}
+                  placeholder="myDApp"
+                  value={this.state.contractName}
+                  results={this.state.results}
+                  resultRenderer={resultRenderer}
+                  onResultSelect={this.handleResultSelect}
+                />
+              </Grid.Column>
+            </Grid>
           </Form>
-          <Divider />
           <Grid columns={2} centered stackable>
             <Grid.Column>{this.renderUserHistory()}</Grid.Column>
             <Grid.Column>{this.renderGlobalHistory()}</Grid.Column>
           </Grid>
-        </div>
+        </Segment>
       );
     } else if (currentDappFormStep == 2) {
       formDisplay = (
         <div>
           <Header as="h2" icon textAlign="center">
             <Icon name="file code outline" circular />
-            Enter the details
+            Enter details for "{this.state.contractName}"
           </Header>
           <Form
             textAlign="center"
@@ -451,7 +506,7 @@ class App extends Component {
                   Low Security
                   <Header.Subheader>Instant</Header.Subheader>
                 </Header>
-                <Button icon="lightning" color="green" content="Create" />
+                <Button icon="lightning" color="green" content="Create dApp" />
               </Segment>
               <Segment disabled={!this.state.abi}>
                 <Header>
@@ -466,7 +521,7 @@ class App extends Component {
                   name="currentDappFormStep"
                   value={currentDappFormStep + 1}
                   onClick={this.handleChange}
-                  content="Create Secure DApp"
+                  content="Create dApp"
                 />
               </Segment>
             </Segment.Group>
@@ -492,18 +547,15 @@ class App extends Component {
             >
               <Icon name="arrow left" />Back
             </Menu.Item>
-            <Menu.Item>
-              Progress:
-              <Progress
-                value={currentDappFormStep}
-                total="3"
-                progress="ratio"
-                color="teal"
-              />
-            </Menu.Item>
           </Menu.Menu>
         </Menu>
-
+        Progress:
+        <Progress
+          value={currentDappFormStep}
+          total="3"
+          progress="ratio"
+          color="teal"
+        />
         {formDisplay}
       </Segment>
     );
@@ -511,6 +563,7 @@ class App extends Component {
   renderInterface() {
     return (
       <div>
+        Viewing {this.state.contractName}
         <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
           OneClickDApp.com{this.state.mnemonic || '/ ...'}
         </a>
@@ -541,7 +594,7 @@ class App extends Component {
         </Header>
         <div style={{ overflow: 'auto', maxHeight: 300 }}>
           {recentContracts.length > 0 ? (
-            <Table unstackable selectable basic="very">
+            <Table unstackable selectable>
               <Table.Header>
                 <Table.Row textAlign="center">
                   <Table.HeaderCell>
@@ -602,7 +655,7 @@ class App extends Component {
         </Header>
         <div style={{ overflow: 'auto', maxHeight: 300 }}>
           {userSavedContracts !== undefined && userSavedContracts.length > 0 ? (
-            <Table unstackable basic="very">
+            <Table unstackable>
               <Table.Header>
                 <Table.Row textAlign="center">
                   <Table.HeaderCell>
@@ -809,7 +862,7 @@ class App extends Component {
           onUpdate={state => {
             console.log('Gas price update:', state);
             this.setState(state, () => {
-              console.log('GWEI set:', this.state);
+              console.log('GWEI set:', this.state.gwei);
             });
           }}
         />
@@ -888,7 +941,7 @@ class App extends Component {
             requiredNetwork: [requiredNetwork],
             hide: displayDappForm
           }}
-          // metatx={METATX}
+          metatx={METATX}
           fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
           onUpdate={state => {
             console.log('metamask state update:', state);

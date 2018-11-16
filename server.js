@@ -1,7 +1,7 @@
 // Dependencies
 const _ = require('lodash');
 const express = require('express');
-
+const fs = require('fs');
 // Database toolds
 const bodyParser = require('body-parser');
 
@@ -91,6 +91,22 @@ app.get('/contracts/recentContracts', (req, res) => {
       res.status(400).send(`Recent contracts not found...`);
       console.log(err.err);
     });
+});
+
+app.get('/contracts/externalContracts', (req, res) => {
+  console.log(' ');
+  console.log('################## GET  #####################');
+  console.log(`Retrieving external contracts`);
+  let externalContracts = [];
+  const path = './externalContracts/myEtherWallet/src/contracts/eth';
+  fs.readdirSync(path).forEach(file => {
+    const contract = JSON.parse(fs.readFileSync(`${path}/${file}`, 'utf8'));
+    contract.source = 'MEW Ethereum-lists';
+    externalContracts.push(contract);
+  });
+  res.send({
+    externalContracts
+  });
 });
 
 app.get('/contracts/:mnemonic', (req, res) => {
