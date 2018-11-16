@@ -17,7 +17,8 @@ import {
   Link,
   Image,
   Transition,
-  Search
+  Search,
+  Dropdown
 } from 'semantic-ui-react';
 import {
   Dapparatus,
@@ -74,7 +75,7 @@ class App extends Component {
       results: '',
       isLoading: false,
       // Display states
-      currentDappFormStep: 1,
+      currentDappFormStep: 3,
       displayDappForm: true,
       displayLoading: false,
       displayGeneratingDapp: true,
@@ -232,7 +233,6 @@ class App extends Component {
       </div>
     );
     this.setState({
-      currentDappFormStep: 3,
       displayLoading
     });
     const abi = JSON.parse(abiRaw);
@@ -322,8 +322,9 @@ class App extends Component {
   resetComponent = () =>
     this.setState({ isLoading: false, results: [], contractName: '' });
   handleResultSelect = (e, { result }) => {
+    const name = `${result.name} (clone)`;
     this.setState({
-      contractName: result.name,
+      contractName: name,
       requiredNetwork: 'Mainnet',
       contractAddress: result.address,
       abiRaw: JSON.stringify(result.abi),
@@ -363,16 +364,6 @@ class App extends Component {
         <div>
           <Header>Hi, I'm Chelsea!</Header>
           <Image centered size="medium" src={chelsea} />
-
-          <Button
-            color="green"
-            icon="thumbs up"
-            labelPosition="right"
-            name="currentDappFormStep"
-            value={currentDappFormStep + 1}
-            onClick={this.handleChange}
-            content="Got it!"
-          />
         </div>
       );
     } else if (currentDappFormStep == 1) {
@@ -393,8 +384,8 @@ class App extends Component {
         abi: PropTypes.object
       };
       formDisplay = (
-        <Segment textAlign="center">
-          <Image centered size="small" src={tablet} />
+        <div>
+          <Image centered size="tiny" src={tablet} />
           <Header as="h2">
             Create a new dApp
             <Header.Subheader>
@@ -427,7 +418,7 @@ class App extends Component {
             <Grid.Column>{this.renderUserHistory()}</Grid.Column>
             <Grid.Column>{this.renderGlobalHistory()}</Grid.Column>
           </Grid>
-        </Segment>
+        </div>
       );
     } else if (currentDappFormStep == 2) {
       formDisplay = (
@@ -436,128 +427,198 @@ class App extends Component {
             <Icon name="file code outline" circular />
             Enter details for "{this.state.contractName}"
           </Header>
-          <Form
-            textAlign="center"
-            error={!!this.state.errorMessage}
-            onSubmit={this.handleGenerateDapp}
-          >
-            <Form.Group inline>
-              <Form.Input
-                inline
-                required
-                name="contractAddress"
-                label="Address"
-                placeholder="0xab123..."
-                value={this.state.contractAddress}
-                onChange={this.handleChange}
-              />
-              <Form.Input inline label="Network">
-                <Form.Dropdown
-                  required
-                  placeholder="Mainnet, Ropsten, Rinkeby ..."
-                  selection
+          <Segment textAlign="center">
+            <Form
+              textAlign="center"
+              error={!!this.state.errorMessage}
+              onSubmit={this.handleGenerateDapp}
+            >
+              <Form.Group inline>
+                <Form.Input
                   inline
-                  name="requiredNetwork"
+                  required
+                  name="contractAddress"
+                  label="Address"
+                  placeholder="0xab123..."
+                  value={this.state.contractAddress}
                   onChange={this.handleChange}
-                  options={[
-                    { key: 'Mainnet', value: 'Mainnet', text: 'Mainnet' },
-                    { key: 'Ropsten', value: 'Ropsten', text: 'Ropsten' },
-                    { key: 'Rinkeby', value: 'Rinkeby', text: 'Rinkeby' },
-                    { key: 'Kovan', value: 'Kovan', text: 'Kovan' },
-                    {
-                      key: 'Private',
-                      value: 'Private',
-                      text: 'Private (local-host)'
-                    }
-                  ]}
-                  value={this.state.requiredNetwork}
                 />
-              </Form.Input>
-            </Form.Group>
+                <Form.Input inline label="Network">
+                  <Form.Dropdown
+                    required
+                    placeholder="Mainnet, Ropsten, Rinkeby ..."
+                    selection
+                    inline
+                    name="requiredNetwork"
+                    onChange={this.handleChange}
+                    options={[
+                      { key: 'Mainnet', value: 'Mainnet', text: 'Mainnet' },
+                      { key: 'Ropsten', value: 'Ropsten', text: 'Ropsten' },
+                      { key: 'Rinkeby', value: 'Rinkeby', text: 'Rinkeby' },
+                      { key: 'Kovan', value: 'Kovan', text: 'Kovan' },
+                      {
+                        key: 'Private',
+                        value: 'Private',
+                        text: 'Private (local-host)'
+                      }
+                    ]}
+                    value={this.state.requiredNetwork}
+                  />
+                </Form.Input>
+              </Form.Group>
 
-            <Form.TextArea
-              required
-              label={
-                <div>
-                  Interface ABI{' '}
-                  <Popup
-                    flowing
-                    hoverable
-                    trigger={<Icon name="question circle" />}
-                  >
-                    Issues with your Application Binary Interface? Be sure its
-                    in the proper formated listed in the{' '}
-                    <a
-                      target="_blank"
-                      href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#json"
+              <Form.TextArea
+                required
+                label={
+                  <div>
+                    Interface ABI{' '}
+                    <Popup
+                      flowing
+                      hoverable
+                      trigger={<Icon name="question circle" />}
                     >
-                      Solidity docs
-                    </a>.
-                  </Popup>
-                </div>
-              }
-              placeholder={`[{"constant": false,"inputs": [],"name": "distributeFunds", "outputs": [{"name": "","type": "bool"}],"payable": true, "stateMutability": "payable","type": "function"}...]`}
-              value={this.state.abiRaw}
-              onChange={this.handleChangeABI}
-            />
-            <Segment.Group vertical>
-              <Segment disabled={!this.state.abi}>
-                <Header>
-                  Low Security
-                  <Header.Subheader>Instant</Header.Subheader>
-                </Header>
-                <Button icon="lightning" color="green" content="Create dApp" />
-              </Segment>
-              <Segment disabled={!this.state.abi}>
-                <Header>
-                  High Security
-                  <Header.Subheader>
-                    <Icon name="time" />>30s
-                  </Header.Subheader>
-                </Header>
-                <Button
-                  icon="lock"
-                  color="blue"
-                  name="currentDappFormStep"
-                  value={currentDappFormStep + 1}
-                  onClick={this.handleChange}
-                  content="Create dApp"
-                />
-              </Segment>
-            </Segment.Group>
-            <Message error header="Oops!" content={this.state.errorMessage} />
-          </Form>
-          <br />
+                      Issues with your Application Binary Interface? Be sure its
+                      in the proper formated listed in the{' '}
+                      <a
+                        target="_blank"
+                        href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#json"
+                      >
+                        Solidity docs
+                      </a>.
+                    </Popup>
+                  </div>
+                }
+                placeholder={`[{"constant": false,"inputs": [],"name": "distributeFunds", "outputs": [{"name": "","type": "bool"}],"payable": true, "stateMutability": "payable","type": "function"}...]`}
+                value={this.state.abiRaw}
+                onChange={this.handleChangeABI}
+              />
+
+              <Message error header="Oops!" content={this.state.errorMessage} />
+            </Form>
+          </Segment>
         </div>
       );
     } else if (currentDappFormStep == 3) {
-      formDisplay = 'form step #2';
+      formDisplay = (
+        <div>
+          <Header as="h2" icon textAlign="center">
+            <Icon name="shield alternate" circular />
+            Choose your security
+          </Header>
+          <Grid columns={2} textAlign="center">
+            <Grid.Row>
+              <Header>
+                Low
+                <Header.Subheader>
+                  Instant<br />Free
+                </Header.Subheader>
+              </Header>
+              <Button
+                size="huge"
+                icon="lightning"
+                color="green"
+                content="Create dApp"
+                onClick={this.handleGenerateDapp}
+                content="Create dApp"
+              />
+            </Grid.Row>
+            <Divider />
+            <Grid.Row>
+              <Grid.Column textAlign="right">
+                <Image src={tablet} size="mini" inline />
+                <Header>
+                  High
+                  <Header.Subheader>
+                    <Icon name="time" />>30s<br />
+                    Permanent
+                  </Header.Subheader>
+                </Header>
+              </Grid.Column>
+              <Grid.Column textAlign="left">
+                <Button
+                  size="huge"
+                  icon="lock"
+                  color="green"
+                  onClick={this.handleGenerateDapp}
+                  content="Create dApp"
+                />
+              </Grid.Column>
+            </Grid.Row>
+          </Grid>
+        </div>
+      );
     }
 
     return (
-      <Segment>
-        <Menu secondary>
-          <Menu.Menu position="left">
-            <Menu.Item
-              disabled={!currentDappFormStep}
-              name="currentDappFormStep"
-              value={currentDappFormStep - 1 < 1 ? 0 : currentDappFormStep - 1}
-              icon
-              onClick={this.handleChange}
-            >
-              <Icon name="arrow left" />Back
-            </Menu.Item>
-          </Menu.Menu>
-        </Menu>
-        Progress:
-        <Progress
-          value={currentDappFormStep}
-          total="3"
-          progress="ratio"
-          color="teal"
-        />
+      <div>
+        <div
+          style={{
+            fontSize: 16,
+            zIndex: 5,
+            position: 'fixed',
+            paddingTop: 30,
+            marginBottom: 0,
+            textAlign: 'left',
+            top: 100,
+            left: 10,
+            opacity: 1,
+
+            width: 220,
+            paddingLeft: 10
+          }}
+        >
+          <Button
+            basic
+            floated
+            hidden={!currentDappFormStep}
+            name="currentDappFormStep"
+            value={currentDappFormStep - 1 < 1 ? 0 : currentDappFormStep - 1}
+            icon="arrow left"
+            onClick={this.handleChange}
+            content="back"
+          >
+            <Image size="mini" src={boulder} />
+          </Button>
+        </div>
+        <div
+          style={{
+            fontSize: 16,
+            zIndex: 5,
+            position: 'fixed',
+            paddingTop: 30,
+            marginBottom: 0,
+            textAlign: 'right',
+            top: 100,
+            right: 10,
+            opacity: 1,
+            width: 220,
+            paddingRight: 10
+          }}
+        >
+          <Button
+            basic
+            floated
+            name="currentDappFormStep"
+            value={currentDappFormStep - 1 > 1 ? 0 : currentDappFormStep + 1}
+            icon="arrow left"
+            onClick={this.handleChange}
+            content="back"
+          >
+            <Image size="mini" src={boulder} />
+          </Button>
+        </div>
+        <Container>
+          <Progress
+            text="step"
+            value={currentDappFormStep}
+            total="3"
+            progress="ratio"
+            color="teal"
+            size="small"
+          />
+        </Container>
         {formDisplay}
-      </Segment>
+      </div>
     );
   }
   renderInterface() {
@@ -931,46 +992,63 @@ class App extends Component {
     }
     return (
       <div className="App">
+        <Menu fixed="top" inverted>
+          <Container>
+            <Menu.Item as="a" header href="http://oneclickdapp.com">
+              <Image
+                size="mini"
+                src={chelsea}
+                style={{ marginRight: '1.5em' }}
+              />
+              One Click dApp
+            </Menu.Item>
+            <Dropdown item simple text="About">
+              <Dropdown.Menu>
+                <Dropdown.Item icon="question" text="Help" />
+                <Dropdown.Divider />
+                <Dropdown.Header>Contact</Dropdown.Header>
+                <Dropdown.Item
+                  icon="github"
+                  text="Github"
+                  target="_blank"
+                  href="https://github.com/blockchainbuddha/one-click-DApps"
+                />
+                <Dropdown.Item
+                  icon="twitter"
+                  text="twitter"
+                  href="https://twitter.com/pi0neerpat"
+                  target="_blank"
+                />
+              </Dropdown.Menu>
+            </Dropdown>
+            <Container>
+              <Dapparatus
+                config={{
+                  DEBUG: false,
+                  requiredNetwork: [requiredNetwork],
+                  hide: false
+                }}
+                metatx={METATX}
+                fallbackWeb3Provider={
+                  new Web3.providers.HttpProvider(WEB3_PROVIDER)
+                }
+                onUpdate={state => {
+                  console.log('metamask state update:', state);
+                  if (state.web3Provider) {
+                    state.web3 = new Web3(state.web3Provider);
+                    this.setState(state);
+                  }
+                }}
+              />
+            </Container>
+          </Container>
+        </Menu>
         <Header as="h1" textAlign="left">
           One Click dApp
         </Header>
 
-        <Dapparatus
-          config={{
-            DEBUG: false,
-            requiredNetwork: [requiredNetwork],
-            hide: displayDappForm
-          }}
-          metatx={METATX}
-          fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
-          onUpdate={state => {
-            console.log('metamask state update:', state);
-            if (state.web3Provider) {
-              state.web3 = new Web3(state.web3Provider);
-              this.setState(state);
-            }
-          }}
-        />
-
-        <Divider />
         {mainDisplay}
         {connectedDisplay}
-        <Divider />
-        <p>
-          Made by Patrick Gallagher{' '}
-          <a
-            target="_blank"
-            href="https://github.com/blockchainbuddha/one-click-DApps"
-          >
-            <Icon name="github" size="large" />
-            Github
-          </a>
-          {'  '}
-          <a target="_blank" href="https://twitter.com/pi0neerpat">
-            <Icon name="twitter" size="large" />
-            Twitter
-          </a>
-        </p>
       </div>
     );
   }
