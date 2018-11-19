@@ -31,6 +31,7 @@ import {
   Blockie,
   Address
 } from 'dapparatus';
+import Navigation from './components/Navigation';
 import Web3 from 'web3';
 import web3 from './ethereum/web3';
 import moment from 'moment';
@@ -48,10 +49,28 @@ const METATX = {
 const WEB3_PROVIDER = 'http://0.0.0.0:8545';
 // assets
 const chelsea = require('./assets/chelsea.png');
-const boulder = require('./assets/boulder.png');
+const chelseaHello = require('./assets/chelsea-hello.png');
 const cloud = require('./assets/cloud.png');
 const tablet = require('./assets/tablet.png');
-const triframe = require('./assets/triframe.png');
+const castle = require('./assets/castle.png');
+const shield = require('./assets/shield.png');
+const tent = require('./assets/tent.png');
+const twitter = require('./assets/twitter.png');
+const details = require('./assets/details.png');
+const instructions = require('./assets/instructions.png');
+const chiselProcess = require('./assets/chisel-process.png');
+const market = require('./assets/market.png');
+const treasure = require('./assets/treasure.png');
+const copy = require('./assets/copy.png');
+const pen = require('./assets/pen.png');
+const search = require('./assets/search.png');
+const user = require('./assets/user.png');
+const load = require('./assets/load.png');
+const ethereum = require('./assets/ethereum.png');
+const ethereumSmall = require('./assets/ethereum-small.png');
+const clock = require('./assets/clock.png');
+const github = require(`./assets/github.png`);
+const question = require(`./assets/question.png`);
 
 class App extends Component {
   constructor(props) {
@@ -59,9 +78,9 @@ class App extends Component {
     this.state = {
       abi: '',
       abiRaw: JSON.stringify(sampleABI),
-      requiredNetwork: 'Roptsen',
+      requiredNetwork: '',
       contractAddress: '0x5f462bcCD7617D0B81feEf9e4B0C9Af0909eA980',
-      contractName: 'cry',
+      contractName: 'myDapp',
       errorMessage: '',
       errorMessageView: '',
       loading: false,
@@ -75,11 +94,11 @@ class App extends Component {
       results: '',
       isLoading: false,
       // Display states
-      currentDappFormStep: 3,
+      currentDappFormStep: 0,
       displayDappForm: true,
       displayLoading: false,
-      displayGeneratingDapp: true,
       //new from dapparatus
+      disableDapparatus: true,
       web3: false,
       account: false,
       gwei: 4,
@@ -101,12 +120,18 @@ class App extends Component {
     if (mnemonic.length > 1) {
       const loading = (
         <div>
-          <Icon loading name="spinner" /> Loading dApp...
+          <Icon.Group size="huge">
+            <Icon loading size="large" name="circle notch" />
+            <Icon name="download" />
+          </Icon.Group>
+          <Header as="h2">Loading...</Header>
+          <Image centered src={tablet} size="large" />
         </div>
       );
       this.setState({
         displayDappForm: false,
-        displayLoading: loading
+        displayLoading: loading,
+        disableDapparatus: false
       });
       axios
         .get(`/contracts${mnemonic}`)
@@ -226,15 +251,18 @@ class App extends Component {
     } = this.state;
     const displayLoading = (
       <div>
-        <Header>
-          <Icon loading name="load" />Creating your dApp...
-        </Header>
-        <Image centered src={triframe} />
+        <Icon.Group size="huge">
+          <Icon loading size="large" name="circle notch" />
+          <Icon name="code" />
+        </Icon.Group>
+        <Header as="h2">Building your dApp...</Header>
+        <Image centered src={cloud} size="medium" />
       </div>
     );
     this.setState({
       displayLoading
     });
+
     const abi = JSON.parse(abiRaw);
     console.log('Generating unique URL...' + account);
     axios
@@ -362,8 +390,40 @@ class App extends Component {
     } else if (currentDappFormStep < 1) {
       formDisplay = (
         <div>
-          <Header>Hi, I'm Chelsea!</Header>
-          <Image centered size="medium" src={chelsea} />
+          <Image inline size="large" src={chelseaHello} />
+          <Segment compact textAlign="left">
+            First deploy your smart contract using{' '}
+            <a href="http://remix.ethereum.org" target="_blank">
+              Remix
+            </a>,{' '}
+            <a href="https://github.com/austintgriffith/clevis" target="_blank">
+              Clevis
+            </a>, or{' '}
+            <a
+              href="https://truffleframework.com/tutorials/pet-shop"
+              target="_blank"
+            >
+              Truffle
+            </a>.<br />Then enter the
+            <a
+              href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
+              target="_blank"
+            >
+              {' '}
+              ABI
+            </a>{' '}
+            and network and choose a security level.<br />Voila, your very own
+            dApp at a unique URL!
+          </Segment>
+
+          <Image centered size="huge" src={instructions} />
+          <Navigation
+            step={currentDappFormStep}
+            direction="right"
+            onUpdate={state => {
+              this.setState({ currentDappFormStep: state.step });
+            }}
+          />
         </div>
       );
     } else if (currentDappFormStep == 1) {
@@ -383,13 +443,14 @@ class App extends Component {
         address: PropTypes.string,
         abi: PropTypes.object
       };
+
       formDisplay = (
         <div>
-          <Image centered size="tiny" src={tablet} />
+          <Image src={pen} size="small" centered />
           <Header as="h2">
             Create a new dApp
             <Header.Subheader>
-              or clone an existing one <Icon name="clone" />
+              or clone an existing one <Image src={copy} size="mini" inline />
             </Header.Subheader>
           </Header>
           <Form
@@ -410,131 +471,163 @@ class App extends Component {
                   results={this.state.results}
                   resultRenderer={resultRenderer}
                   onResultSelect={this.handleResultSelect}
+                  required={true}
                 />
               </Grid.Column>
             </Grid>
+            <Navigation direction="right" formSubmit={true} />
           </Form>
           <Grid columns={2} centered stackable>
-            <Grid.Column>{this.renderUserHistory()}</Grid.Column>
-            <Grid.Column>{this.renderGlobalHistory()}</Grid.Column>
+            <Grid.Column>
+              <Segment>{this.renderUserHistory()}</Segment>
+            </Grid.Column>
+            <Grid.Column>
+              <Segment>{this.renderGlobalHistory()}</Segment>
+            </Grid.Column>
           </Grid>
+          <Navigation
+            step={currentDappFormStep}
+            direction="left"
+            onUpdate={state => {
+              this.setState({ currentDappFormStep: state.step });
+            }}
+          />
         </div>
       );
     } else if (currentDappFormStep == 2) {
       formDisplay = (
         <div>
-          <Header as="h2" icon textAlign="center">
-            <Icon name="file code outline" circular />
+          <Image centered size="small" src={details} />
+          <Header as="h2" textAlign="center">
             Enter details for "{this.state.contractName}"
           </Header>
-          <Segment textAlign="center">
-            <Form
-              textAlign="center"
-              error={!!this.state.errorMessage}
-              onSubmit={this.handleGenerateDapp}
-            >
-              <Form.Group inline>
-                <Form.Input
-                  inline
-                  required
-                  name="contractAddress"
-                  label="Address"
-                  placeholder="0xab123..."
-                  value={this.state.contractAddress}
-                  onChange={this.handleChange}
-                />
-                <Form.Input inline label="Network">
-                  <Form.Dropdown
-                    required
-                    placeholder="Mainnet, Ropsten, Rinkeby ..."
-                    selection
+          <Grid textAlign="center">
+            <Segment compact textAlign="center">
+              <Form
+                error={!!this.state.errorMessage}
+                onSubmit={() => this.setState({ currentDappFormStep: 3 })}
+              >
+                <Form.Group inline>
+                  <Form.Input
                     inline
-                    name="requiredNetwork"
+                    required
+                    name="contractAddress"
+                    label="Address"
+                    placeholder="0xab123..."
+                    value={this.state.contractAddress}
                     onChange={this.handleChange}
-                    options={[
-                      { key: 'Mainnet', value: 'Mainnet', text: 'Mainnet' },
-                      { key: 'Ropsten', value: 'Ropsten', text: 'Ropsten' },
-                      { key: 'Rinkeby', value: 'Rinkeby', text: 'Rinkeby' },
-                      { key: 'Kovan', value: 'Kovan', text: 'Kovan' },
-                      {
-                        key: 'Private',
-                        value: 'Private',
-                        text: 'Private (local-host)'
-                      }
-                    ]}
-                    value={this.state.requiredNetwork}
                   />
-                </Form.Input>
-              </Form.Group>
-
-              <Form.TextArea
-                required
-                label={
-                  <div>
-                    Interface ABI{' '}
-                    <Popup
-                      flowing
-                      hoverable
-                      trigger={<Icon name="question circle" />}
-                    >
-                      Issues with your Application Binary Interface? Be sure its
-                      in the proper formated listed in the{' '}
-                      <a
-                        target="_blank"
-                        href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#json"
+                  <Form.Input inline label="Network">
+                    <Form.Dropdown
+                      required
+                      placeholder="Mainnet, Ropsten, Rinkeby ..."
+                      selection
+                      inline
+                      name="requiredNetwork"
+                      onChange={this.handleChange}
+                      options={[
+                        { key: 'Mainnet', value: 'Mainnet', text: 'Mainnet' },
+                        { key: 'Ropsten', value: 'Ropsten', text: 'Ropsten' },
+                        { key: 'Rinkeby', value: 'Rinkeby', text: 'Rinkeby' },
+                        { key: 'Kovan', value: 'Kovan', text: 'Kovan' },
+                        {
+                          key: 'Private',
+                          value: 'Private',
+                          text: 'Private (local-host)'
+                        }
+                      ]}
+                      value={this.state.requiredNetwork}
+                    />
+                  </Form.Input>
+                </Form.Group>
+                <Form.TextArea
+                  rows="15"
+                  required
+                  label={
+                    <div>
+                      Interface ABI{' '}
+                      <Popup
+                        flowing
+                        hoverable
+                        trigger={<Icon name="question circle" />}
                       >
-                        Solidity docs
-                      </a>.
-                    </Popup>
-                  </div>
-                }
-                placeholder={`[{"constant": false,"inputs": [],"name": "distributeFunds", "outputs": [{"name": "","type": "bool"}],"payable": true, "stateMutability": "payable","type": "function"}...]`}
-                value={this.state.abiRaw}
-                onChange={this.handleChangeABI}
-              />
-
-              <Message error header="Oops!" content={this.state.errorMessage} />
-            </Form>
-          </Segment>
+                        Issues with your Application Binary Interface? Check the
+                        proper formatting listed in the{' '}
+                        <a
+                          target="_blank"
+                          href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
+                        >
+                          Solidity docs
+                        </a>.
+                      </Popup>
+                    </div>
+                  }
+                  placeholder={`[{"constant": false,"inputs": [],"name": "distributeFunds", "outputs": [{"name": "","type": "bool"}],"payable": true, "stateMutability": "payable","type": "function"}...]`}
+                  value={this.state.abiRaw}
+                  onChange={this.handleChangeABI}
+                />
+                <Message
+                  attached="top"
+                  error
+                  header="Oops!"
+                  content={this.state.errorMessage}
+                />
+                <Navigation direction="right" formSubmit={true} />
+              </Form>
+            </Segment>
+          </Grid>
+          <Navigation
+            step={currentDappFormStep}
+            direction="left"
+            onUpdate={state => {
+              this.setState({ currentDappFormStep: state.step });
+            }}
+          />
         </div>
       );
     } else if (currentDappFormStep == 3) {
       formDisplay = (
         <div>
-          <Header as="h2" icon textAlign="center">
-            <Icon name="shield alternate" circular />
+          <Image size="small" centered src={shield} />
+          <Header as="h2" textAlign="center">
             Choose your security
           </Header>
-          <Grid columns={2} textAlign="center">
-            <Grid.Row>
-              <Header>
-                Low
-                <Header.Subheader>
-                  Instant<br />Free
-                </Header.Subheader>
-              </Header>
-              <Button
-                size="huge"
-                icon="lightning"
-                color="green"
-                content="Create dApp"
-                onClick={this.handleGenerateDapp}
-                content="Create dApp"
-              />
-            </Grid.Row>
-            <Divider />
-            <Grid.Row>
-              <Grid.Column textAlign="right">
-                <Image src={tablet} size="mini" inline />
-                <Header>
-                  High
+          <Grid columns={2} verticalAlign="bottom" textAlign="center">
+            <Grid.Column>
+              <Segment>
+                <Image centered size="tiny" src={tent} />
+                <Header as="h2">
+                  Low
                   <Header.Subheader>
-                    <Icon name="time" />>30s<br />
-                    Permanent
+                    Unique URL
+                    <br />
+                    Instant<br />
+                    Free
                   </Header.Subheader>
                 </Header>
-              </Grid.Column>
-              <Grid.Column textAlign="left">
+                <Button
+                  size="huge"
+                  icon="lightning"
+                  color="green"
+                  content="Create dApp"
+                  onClick={this.handleGenerateDapp}
+                  content="Create dApp"
+                />
+              </Segment>
+            </Grid.Column>
+            <Grid.Column>
+              <Segment>
+                <Image centered size="small" src={castle} />
+                <Header as="h2">
+                  High
+                  <Header.Subheader>
+                    <Icon name="world" />Custom URL
+                    <br />
+                    Permanent
+                    <br />
+                    <Icon name="dollar" />Pay what you want
+                  </Header.Subheader>
+                </Header>
                 <Button
                   size="huge"
                   icon="lock"
@@ -542,71 +635,22 @@ class App extends Component {
                   onClick={this.handleGenerateDapp}
                   content="Create dApp"
                 />
-              </Grid.Column>
-            </Grid.Row>
+              </Segment>
+            </Grid.Column>
           </Grid>
+          <Navigation
+            step={currentDappFormStep}
+            direction="left"
+            onUpdate={state => {
+              this.setState({ currentDappFormStep: state.step });
+            }}
+          />
         </div>
       );
     }
 
     return (
       <div>
-        <div
-          style={{
-            fontSize: 16,
-            zIndex: 5,
-            position: 'fixed',
-            paddingTop: 30,
-            marginBottom: 0,
-            textAlign: 'left',
-            top: 100,
-            left: 10,
-            opacity: 1,
-
-            width: 220,
-            paddingLeft: 10
-          }}
-        >
-          <Button
-            basic
-            floated
-            hidden={!currentDappFormStep}
-            name="currentDappFormStep"
-            value={currentDappFormStep - 1 < 1 ? 0 : currentDappFormStep - 1}
-            icon="arrow left"
-            onClick={this.handleChange}
-            content="back"
-          >
-            <Image size="mini" src={boulder} />
-          </Button>
-        </div>
-        <div
-          style={{
-            fontSize: 16,
-            zIndex: 5,
-            position: 'fixed',
-            paddingTop: 30,
-            marginBottom: 0,
-            textAlign: 'right',
-            top: 100,
-            right: 10,
-            opacity: 1,
-            width: 220,
-            paddingRight: 10
-          }}
-        >
-          <Button
-            basic
-            floated
-            name="currentDappFormStep"
-            value={currentDappFormStep - 1 > 1 ? 0 : currentDappFormStep + 1}
-            icon="arrow left"
-            onClick={this.handleChange}
-            content="back"
-          >
-            <Image size="mini" src={boulder} />
-          </Button>
-        </div>
         <Container>
           <Progress
             text="step"
@@ -624,10 +668,17 @@ class App extends Component {
   renderInterface() {
     return (
       <div>
-        Viewing {this.state.contractName}
-        <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
-          OneClickDApp.com{this.state.mnemonic || '/ ...'}
-        </a>
+        <Segment>
+          <Header as="h3" textAlign="center">
+            dApp "{this.state.contractName}"
+            <Header.Subheader>
+              Bookmark this link{' '}
+              <a href={`http://OneClickDApp.com${this.state.mnemonic}`}>
+                OneClickDApp.com{this.state.mnemonic || '/ ...'}
+              </a>
+            </Header.Subheader>
+          </Header>
+        </Segment>
         <Grid stackable columns={2}>
           <Grid.Column>
             <Header>
@@ -650,8 +701,9 @@ class App extends Component {
     const { recentContracts } = this.state;
     return (
       <div>
+        <Image centered src={market} size="tiny" />
         <Header textAlign="center" as="h3" icon>
-          <Icon name="globe" />Recent Public dApps
+          Recent Public dApps
         </Header>
         <div style={{ overflow: 'auto', maxHeight: 300 }}>
           {recentContracts.length > 0 ? (
@@ -659,22 +711,23 @@ class App extends Component {
               <Table.Header>
                 <Table.Row textAlign="center">
                   <Table.HeaderCell>
-                    <Icon name="pencil" />
+                    <Image src={pen} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
-                    <Icon name="user" />
+                    <Image src={user} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
-                    <Icon name="ethereum" />
+                    <Image src={ethereumSmall} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
-                    <Icon name="clock outline" />
+                    <Image src={clock} size="mini" centered />
                   </Table.HeaderCell>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
                 {recentContracts.map((contract, index) => (
                   <Table.Row
+                    textAlign="center"
                     key={index}
                     onClick={() => {
                       window.location.pathname = `${contract.mnemonic}`;
@@ -707,12 +760,12 @@ class App extends Component {
     const { userSavedContracts, account } = this.state;
     return (
       <div>
+        <Image centered src={treasure} size="small" />
         <Header textAlign="center" as="h3" icon>
-          <Icon name="save" />
           {<Blockie floated config={{ size: 2 }} address={account} /> || (
             <Icon name="user" />
           )}{' '}
-          Saved dApps
+          Your saved dApps
         </Header>
         <div style={{ overflow: 'auto', maxHeight: 300 }}>
           {userSavedContracts !== undefined && userSavedContracts.length > 0 ? (
@@ -720,19 +773,20 @@ class App extends Component {
               <Table.Header>
                 <Table.Row textAlign="center">
                   <Table.HeaderCell>
-                    <Icon name="pencil" />
+                    <Image src={pen} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
-                    <Icon name="ethereum" />
+                    <Image src={ethereumSmall} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
-                    <Icon name="clock outline" />
+                    <Image src={clock} size="mini" centered />
                   </Table.HeaderCell>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
                 {userSavedContracts.map((contract, index) => (
                   <Table.Row
+                    textAlign="center"
                     key={index}
                     onClick={() => {
                       window.location.pathname = `${contract.mnemonic}`;
@@ -912,7 +966,8 @@ class App extends Component {
       etherscan,
       requiredNetwork,
       displayDappForm,
-      displayLoading
+      displayLoading,
+      disableDapparatus
     } = this.state;
     let connectedDisplay = [];
     let contractsDisplay = [];
@@ -990,6 +1045,27 @@ class App extends Component {
     } else {
       mainDisplay = this.renderInterface();
     }
+    let dapparatus;
+    if (!disableDapparatus) {
+      dapparatus = (
+        <Dapparatus
+          config={{
+            DEBUG: false,
+            requiredNetwork: [requiredNetwork],
+            hide: displayDappForm
+          }}
+          metatx={METATX}
+          fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
+          onUpdate={state => {
+            console.log('metamask state update:', state);
+            if (state.web3Provider) {
+              state.web3 = new Web3(state.web3Provider);
+              this.setState(state);
+            }
+          }}
+        />
+      );
+    }
     return (
       <div className="App">
         <Menu fixed="top" inverted>
@@ -1004,43 +1080,25 @@ class App extends Component {
             </Menu.Item>
             <Dropdown item simple text="About">
               <Dropdown.Menu>
-                <Dropdown.Item icon="question" text="Help" />
-                <Dropdown.Divider />
-                <Dropdown.Header>Contact</Dropdown.Header>
+                <Dropdown.Item icon="question" text="Help">
+                  <Image src={question} />Help
+                </Dropdown.Item>
                 <Dropdown.Item
-                  icon="github"
-                  text="Github"
                   target="_blank"
                   href="https://github.com/blockchainbuddha/one-click-DApps"
-                />
+                >
+                  <Image size="small" src={github} />Github
+                </Dropdown.Item>
                 <Dropdown.Item
-                  icon="twitter"
-                  text="twitter"
+                  icon
                   href="https://twitter.com/pi0neerpat"
                   target="_blank"
-                />
+                >
+                  <Image src={twitter} />twitter
+                </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
-            <Container>
-              <Dapparatus
-                config={{
-                  DEBUG: false,
-                  requiredNetwork: [requiredNetwork],
-                  hide: false
-                }}
-                metatx={METATX}
-                fallbackWeb3Provider={
-                  new Web3.providers.HttpProvider(WEB3_PROVIDER)
-                }
-                onUpdate={state => {
-                  console.log('metamask state update:', state);
-                  if (state.web3Provider) {
-                    state.web3 = new Web3(state.web3Provider);
-                    this.setState(state);
-                  }
-                }}
-              />
-            </Container>
+            <Container>{dapparatus}</Container>
           </Container>
         </Menu>
         <Header as="h1" textAlign="left">
