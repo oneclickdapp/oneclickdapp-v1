@@ -2,7 +2,7 @@
 
 Smart contract dApps are just one click away.
 
-![alt-text](https://github.com/blockchainbuddha/one-click-dApps/blob/master/readme-assets/dapp.png)
+![alt-text](https://github.com/blockchainbuddha/one-click-dApps/tree/master/readme-assets/dapp.png)
 
 ## Problem
 
@@ -12,7 +12,7 @@ You made a smart contract...now what?
 
 The goal of this project is to make it easier to interact with smart contracts. OneClickDapp instantly builds you a dApp with a simple URL to bookmark or share with a friend. Anyone with the dApp URL can interact with _your shiny new smart contract_, and access all functions at the correct address/network. Don't write a single line of front-end code. Forget about verifying your contract on Etherscan or MEW. Your dApp is just one click away!
 
-![alt-text](https://github.com/blockchainbuddha/one-click-dApps/blob/master/readme-assets/instructions.png)
+![alt-text](https://github.com/blockchainbuddha/one-click-dApps/tree/master/readme-assets/instructions.png)
 
 ### Head to [OneClickdApp.com](oneclickdapp.com) to make your own dApp now.
 
@@ -32,7 +32,7 @@ The goal of this project is to make it easier to interact with smart contracts. 
 
 :white_check_mark: Medieval stone-sculpting theme
 
-![alt-text](https://github.com/blockchainbuddha/one-click-dApps/blob/master/readme-assets/chisel-process.png)
+![alt-text](https://github.com/blockchainbuddha/one-click-dApps/tree/master/readme-assets/chisel-process.png)
 
 ## Planned
 
