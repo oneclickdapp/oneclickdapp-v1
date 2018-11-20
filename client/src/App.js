@@ -73,10 +73,10 @@ class App extends Component {
     super(props);
     this.state = {
       abi: '',
-      abiRaw: JSON.stringify(sampleABI),
+      abiRaw: '',
       requiredNetwork: '',
-      contractAddress: '0x5f462bcCD7617D0B81feEf9e4B0C9Af0909eA980',
-      contractName: 'cry',
+      contractAddress: '',
+      contractName: '',
       errorMessage: '',
       errorMessageView: '',
       loading: false,
