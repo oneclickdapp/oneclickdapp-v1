@@ -39,7 +39,6 @@ import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
 import PropTypes from 'prop-types';
 import { TwitterShareButton } from 'react-share';
 
-const copy = require('copy-text-to-clipboard');
 const axios = require('axios');
 //Dapparatus
 const METATX = {
@@ -701,16 +700,7 @@ class App extends Component {
                 {this.state.contractAddress.substring(0, 7)}...
               </a>
               <br />
-              URL: oneclickdapp.com{this.state.mnemonic || '/ ...'}{' '}
-              <Button
-                size="mini"
-                icon="copy"
-                content="copy"
-                onClick={() => {
-                  copy('OneClickdApp.com' + this.state.mnemonic);
-                }}
-              />
-              <br />
+              URL: oneclickdapp.com{this.state.mnemonic || '/ ...'} <br />
               (press{' '}
               {navigator.userAgent.toLowerCase().indexOf('mac') !== -1
                 ? 'Command/Cmd'
