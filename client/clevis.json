@@ -1,0 +1,13 @@
+{
+  "provider": "http://localhost:8545",
+  "gasprice": 10.9,
+  "ethprice": 184.328460411,
+  "deploygas": 5500000,
+  "xfergas": 1300000,
+  "DEBUG": true,
+  "USE_INFURA": false,
+  "ROOT_FOLDER": "/home/thisguy/repos/one-click-DApps/client",
+  "CRA_FOLDER": "./src",
+  "TESTS_FOLDER": "tests",
+  "CONTRACTS_FOLDER": "contracts"
+}

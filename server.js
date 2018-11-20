@@ -1,46 +1,61 @@
 // Dependencies
-const _ = require("lodash");
-const express = require("express");
-
+const _ = require('lodash');
+const express = require('express');
+const fs = require('fs');
 // Database toolds
-const bodyParser = require("body-parser");
+const bodyParser = require('body-parser');
 
-require("./db/config"); // Database login secrets
-var { mongoose } = require("./db/mongoose");
-var { Contract } = require("./models/Contract");
+require('./db/config'); // Database login secrets
+var { db } = require('./db/mongoose');
+var { Contract } = require('./models/contract');
+var { User } = require('./models/user');
 
-var mnGen = require("mngen"); // Random word generator
+var mnGen = require('mngen'); // Random word generator
 
 var app = express();
-app.set("port", process.env.PORT || 3001);
+app.set('port', process.env.PORT || 3001);
 // Express only serves static assets in production
 app.use(bodyParser.json());
 
-app.post("/contracts", (req, res) => {
+app.post('/contracts', (req, res) => {
   const contractName = req.body.contractName;
   const abi = req.body.abi;
   const contractAddress = req.body.contractAddress;
   const network = req.body.network;
-
+  const creatorAddress = req.body.creatorAddress.toLowerCase();
   // Generate the mnemonic word for the URL
-  const mnemonic = mnGen.word(3);
+  const mnemonic = mnGen.word(2);
+  const currentTime = Date.now();
 
-  console.log(" ");
-  console.log("################## POST #####################");
+  console.log(' ');
+  console.log('################## POST #####################');
   console.log(
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
-  const currentTime = Date.now();
+  console.log(`Creator address: ${creatorAddress}`);
   console.log(`Current time: ${currentTime}`);
-  console.log(`URL: www.oneclickdapp.com/~${mnemonic}`);
+  console.log(`URL: www.oneclickdapp.com/${mnemonic}`);
   var contract = new Contract({
     contractName: contractName,
     abi: abi,
     contractAddress: contractAddress,
     network: network,
     mnemonic: mnemonic,
-    createdAt: currentTime
+    createdAt: currentTime,
+    creatorAddress
   });
+
+  User.findOneAndUpdate(
+    { creatorAddress },
+    { $push: { savedDapps: mnemonic } },
+    {
+      upsert: true,
+      new: true
+    },
+    function() {
+      console.log('User created/updated successfully!');
+    }
+  );
 
   contract.save().then(
     doc => {
@@ -52,7 +67,7 @@ app.post("/contracts", (req, res) => {
   );
 });
 
-app.get("/contracts/recentContracts", (req, res) => {
+app.get('/contracts/recentContracts', (req, res) => {
   Contract.find()
     .sort({ _id: -1 })
     .limit(10)
@@ -63,7 +78,8 @@ app.get("/contracts/recentContracts", (req, res) => {
           contractName: contract.contractName,
           network: contract.network,
           mnemonic: contract.mnemonic,
-          createdAt: contract._id.getTimestamp()
+          createdAt: contract._id.getTimestamp(),
+          creatorAddress: contract.creatorAddress
         };
         recentContracts.push(contractData);
       });
@@ -77,10 +93,27 @@ app.get("/contracts/recentContracts", (req, res) => {
     });
 });
 
-app.get("/contracts/~:mnemonic", (req, res) => {
+app.get('/contracts/externalContracts', (req, res) => {
+  console.log(' ');
+  console.log('################## GET  #####################');
+  console.log(`Retrieving external contracts`);
+  let externalContracts = [];
+  const path = './externalContracts/myEtherWallet/src/contracts/eth';
+  fs.readdirSync(path).forEach(file => {
+    const contract = JSON.parse(fs.readFileSync(`${path}/${file}`, 'utf8'));
+    contract.source = 'MEW Ethereum-lists';
+    contract.title = contract.name;
+    externalContracts.push(contract);
+  });
+  res.send({
+    externalContracts
+  });
+});
+
+app.get('/contracts/:mnemonic', (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
-  console.log(" ");
-  console.log("################## GET  #####################");
+  console.log(' ');
+  console.log('################## GET  #####################');
   console.log(`Retrieving contract for mnemonic: ${mnemonic}`);
 
   Contract.find({ mnemonic: mnemonic })
@@ -91,7 +124,7 @@ app.get("/contracts/~:mnemonic", (req, res) => {
         const abi = myContract.abi;
         const contractAddress = myContract.contractAddress;
         const network = myContract.network;
-        const createdAt = myContract.createdAt;
+        const createdAt = myContract._id.getTimestamp();
         res.send({
           contractName,
           abi,
@@ -110,20 +143,47 @@ app.get("/contracts/~:mnemonic", (req, res) => {
     });
 });
 
-if (process.env.NODE_ENV === "production") {
-  app.set("port", 80);
-  app.use(express.static("client/build"));
-  app.use("*", express.static("client/build"));
+app.get('/user/:creatorAddress', (req, res) => {
+  var creatorAddress = req.params.creatorAddress.toLowerCase();
+  console.log(' ');
+  console.log('################## GET  #####################');
+  console.log(`Retrieving contracts for user address: ${creatorAddress}`);
+
+  User.findOne({ creatorAddress })
+    .then(user => {
+      mnemonics = user.savedDapps;
+      if (mnemonics !== undefined && mnemonics.length > 0) {
+        Contract.find({ mnemonic: { $in: mnemonics } })
+          .sort({ _id: -1 })
+          .then(dapps => {
+            // createdAt: dapp._id.getTimestamp();
+            res.send(dapps);
+          });
+      } else {
+        res.status(400).send(`User not found: ${creatorAddress}`);
+      }
+    })
+    .catch(function(err) {
+      res.status(400).send(`User not found`);
+      console.log(err.err);
+    });
+});
+
+// Return the front-end for all other GET calls
+if (process.env.NODE_ENV === 'production') {
+  app.set('port', 80);
+  app.use(express.static('client/build'));
+  app.use('*', express.static('client/build'));
 }
 
-app.listen(app.get("port"), () => {
+app.listen(app.get('port'), () => {
   console.log(
     `_______________________________________________________________`
   );
   console.log(` `);
   console.log(`################# oneClickDApp API Server ####################`);
   console.log(` `);
-  console.log(`Started on port ${app.get("port")}`);
+  console.log(`Started on port ${app.get('port')}`);
   console.log(`______________________________________________________________`);
   console.log(` `);
 });

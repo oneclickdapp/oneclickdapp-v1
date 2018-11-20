@@ -5,7 +5,8 @@ body {
 }
 
 .vertical-menu {
+  text-align: center;
   width: 250px;
-  height: 150px;
+  height: 300px;
   overflow-y: auto;
 }

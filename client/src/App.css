@@ -8,10 +8,10 @@
 }
 
 .App-header {
-  background-color: #222;
+  background-color: #fff;
   height: 50px;
   padding: 20px;
-  color: white;
+  color: black;
 }
 
 .App-title {
@@ -23,6 +23,10 @@
 }
 
 @keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

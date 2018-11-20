@@ -1,6 +1,6 @@
-var mongoose = require("mongoose");
+var mongoose = require('mongoose');
 
-var Contract = mongoose.model("Contract", {
+var Contract = mongoose.model('Contract', {
   contractName: {
     type: String
   },
@@ -14,6 +14,9 @@ var Contract = mongoose.model("Contract", {
     type: String
   },
   mnemonic: {
+    type: String
+  },
+  creatorAddress: {
     type: String
   }
 });

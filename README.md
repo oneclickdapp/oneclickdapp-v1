@@ -1,45 +1,61 @@
-# One Click DApp
+# One Click dApp
 
-Paste an ABI and get a permanent link that can be used to interact with that contract
+Smart contract dApps are just one click away.
 
-![alt-text](https://github.com/blockchainbuddha/one-click-DApps/blob/master/screengrab.png)
+![alt-text](https://github.com/blockchainbuddha/one-click-dApps/tree/master/readme-assets/dapp.png)
 
 ## Problem
 
-##### Users and developers need a quick and easy way to save and share their smart contracts.
+You made a smart contract...now what?
 
-The goal of this project is to make it easier to interact with smart contracts deployed to ethereum. Currently it is a pain to interact with simple contracts which were previously deployed. You can use remix or truffle, but there is no way to send a link to a friend, and have them be able to call function on the contract, unless a developer builds a whole front end themselves.
+**There is no easy way to share a smart contract interface!**
+
+The goal of this project is to make it easier to interact with smart contracts. OneClickDapp instantly builds you a dApp with a simple URL to bookmark or share with a friend. Anyone with the dApp URL can interact with _your shiny new smart contract_, and access all functions at the correct address/network. Don't write a single line of front-end code. Forget about verifying your contract on Etherscan or MEW. Your dApp is just one click away!
+
+![alt-text](https://github.com/blockchainbuddha/one-click-dApps/tree/master/readme-assets/instructions.png)
+
+### Head to [OneClickdApp.com](oneclickdapp.com) to make your own dApp now.
 
 ## Features Completed
 
-- Save a DApp using custom domain ending e.g. `site.com/banana-monkey-fruit`
+:white_check_mark: Custom dApp URL e.g. `site.com/stone-tablet`
+
+:white_check_mark: Recent public history of dApps
+
+:white_check_mark: Auto-save your dApps using wallet address
+
+:white_check_mark: Clone an existing dApp (sources available: [MEW ethereum-lists](https://github.com/MyEtherWallet/ethereum-lists))
+
+:white_check_mark: In-page wallet for new ethereum users
+
+:white_check_mark: Twitter share Button
+
+:white_check_mark: Medieval stone-sculpting theme
+
+![alt-text](https://github.com/blockchainbuddha/one-click-dApps/tree/master/readme-assets/chisel-process.png)
 
 ## Planned
 
-- Automatically save/show your DApp history using a MetaMask account
-- In-page wallet for new ethereum users (for play only)
-- DApp Emulator- simulate any mainnet DApp using Ganache forking
-- IPFS for frontend and backend
-- Use a decentralized domain name service provider
-- "Copy the code" button to quickly build an input form for your own React app.
+- Ganache forking to emulate any mainnet dApp
+- IPFS for saving dApps
+- Custom ENS domain names
+- "Copy the code" button to build your own React app.
+- Display Events and Transactions using Dapparatus
 
-## Run the app
+## Run the app locally
 
 1.  Run `npm install` in both root directory, and in `/client`
-2.  Create `config.js` in `/db` and enter your mongoDB URL
+2.  Create `config.js` in `./db/` and enter your mongoDB URL
     > process.env.MONGODB_URI = "mongodb://..."
 3.  cd to root directory and run `npm start`
 
-## Run in production mode
+## Contributions welcome!
 
-First enable node to listen on port 80
+This tool is primarily maintained by a single person. It is self-funded and free to use.
 
-1.  `sudo apt-get install libcap2-bin`
-2.  `sudo setcap cap_net_bind_service=+ep /usr/local/bin/node`
-
-Then `npm run start-production`
+Please consider helping by submitting an issue or PR if you want to see improvements faster.
 
 ## Contact
 
-[Joseph](https://twitter.com/cupojoseph),
-[Patrick](https://twitter.com/pi0neerpat)
+[Patrick](https://twitter.com/pi0neerpat),
+[Joseph](https://twitter.com/cupojoseph)
