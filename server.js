@@ -102,6 +102,7 @@ app.get('/contracts/externalContracts', (req, res) => {
   fs.readdirSync(path).forEach(file => {
     const contract = JSON.parse(fs.readFileSync(`${path}/${file}`, 'utf8'));
     contract.source = 'MEW Ethereum-lists';
+    contract.title = contract.name;
     externalContracts.push(contract);
   });
   res.send({

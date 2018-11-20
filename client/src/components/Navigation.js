@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
-import deepmerge from 'deepmerge';
 import { Button, Image } from 'semantic-ui-react';
-let defaultConfig = {};
 const arrowLeft = require('../assets/arrow-left.png');
 const arrowRight = require('../assets/arrow-right.png');
 
@@ -12,7 +10,7 @@ class Navigation extends Component {
     this.state = { step };
   }
   handleClick = () => {
-    let newStep = this.state.step + (this.props.direction == 'left' ? -1 : 1);
+    let newStep = this.state.step + (this.props.direction === 'left' ? -1 : 1);
     this.setState({ step: newStep }, () => {
       this.props.onUpdate(this.state);
     });
@@ -25,12 +23,12 @@ class Navigation extends Component {
       marginBottom: 0,
       top: 100,
       left: 10,
-      opacity: 1,
+      opacity: .75,
       zIndex: 10,
       paddingRight: 10
     };
     let image = arrowLeft;
-    if (this.props.direction == 'right') {
+    if (this.props.direction === 'right') {
       style.right = 10;
       style.left = null;
       image = arrowRight;
@@ -42,7 +40,7 @@ class Navigation extends Component {
 
     return (
       <div style={style}>
-        <Button basic name="currentDappFormStep" onClick={onClick}>
+        <Button basic inverted name="currentDappFormStep" onClick={onClick}>
           <Image src={image} size="tiny" />
         </Button>
       </div>
