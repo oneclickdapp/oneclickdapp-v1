@@ -3,12 +3,19 @@
 <h1 align="center">One Click dApp</h1>
 </p>
 
+<<<<<<< HEAD
 <p align="center"><b> Instantly build a dApp with a simple URL to bookmark or share with a friend.:zap::wrench::link: :shipit:</b></p>
 
 <p align="center"><img alt="dapp example" src="readme-assets/dapp.png" align="middle" width="600" >
 </p>
 
 <h3 align="center"> Shareable dApps are a click away at  [OneClickdApp.com](http://oneclickdapp.com)
+=======
+<p align="center"><b>Shareable smart contract dApps are just one click away :zap::wrench::link: :shipit:</b><p align="center">
+
+<p align="center"><img alt="dapp example" src="readme-assets/dapp.png" align="middle" width="600" >
+</p>
+>>>>>>> a280bf8ce5c890363d7f3fac5369ad4bfd41b338
 
 ## Problem
 
@@ -23,6 +30,10 @@ The goal of this project is to make it easier to interact with smart contracts. 
 <p align="center"><img alt="instructions" src="readme-assets/instructions.png" align="middle" width="600" >
 </p>
 <br/>
+<<<<<<< HEAD
+=======
+<h3 align="center">Check it out at [OneClickdApp.com](http://oneclickdapp.com)
+>>>>>>> a280bf8ce5c890363d7f3fac5369ad4bfd41b338
 
 ## Features Completed
 
@@ -63,12 +74,15 @@ The goal of this project is to make it easier to interact with smart contracts. 
 This tool is primarily maintained by a single person. It is self-funded and free to use.
 
 Please consider helping by submitting an issue or PR.
+<<<<<<< HEAD
 
 ## Check out my other free blockchain resources
 
 - [Walrus Paper Wallet Generator](https://github.com/blockchainbuddha/Walrus-Paper-Wallet-Generator)- Print hundreds of paper wallets quickly.
 - [Smart Contract Troubleshooter](https://github.com/blockchainbuddha/Solidity-Troubleshooting-Guide)- A quick checklist to prevent ripping out your hair.
 - [Patrick's blockchain resources](https://github.com/blockchainbuddha/Intro-to-Blockchain)- If I taught it, you can find it here.
+=======
+>>>>>>> a280bf8ce5c890363d7f3fac5369ad4bfd41b338
 
 ## Contact
 
