@@ -8,7 +8,7 @@
 <p align="center"><img alt="dapp example" src="readme-assets/dapp.png" align="middle" width="600" >
 </p>
 
-<h3 align="center"> Shareable dApps are a click away at  [OneClickdApp.com](http://oneclickdapp.com)
+<h3 align="center"> Shareable dApps are a click away at http://oneclickdapp.com
 
 ## Problem
 
