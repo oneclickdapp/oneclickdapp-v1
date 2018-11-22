@@ -31,6 +31,7 @@ import {
   Address
 } from 'dapparatus';
 import Navigation from './components/Navigation';
+import ContractLoaderCustom from './components/ContractLoaderCustom';
 import Web3 from 'web3';
 import web3 from './ethereum/web3';
 import moment from 'moment';
@@ -216,10 +217,14 @@ class App extends Component {
     this.setState({ loading: false });
   };
   // Takes inputs from the user and stores them to JSON object methodArguments
-  handleMethodDataChange = (e, { name, value, inputindex }) => {
+  handleMethodDataChange = (e, { name, value, inputindex, payable }) => {
     let newMethodData = this.state.methodData;
     const methodIndex = newMethodData.findIndex(method => method.name === name);
-    newMethodData[methodIndex].inputs[inputindex] = value;
+    if (payable) {
+      newMethodData[methodIndex].value = value;
+    } else {
+      newMethodData[methodIndex].inputs[inputindex] = value;
+    }
     this.setState({ methodData: newMethodData });
     // console.log(JSON.stringify(this.state.methodData));
   };
@@ -267,7 +272,7 @@ class App extends Component {
   handleSubmitSend = (e, { name }) => {
     console.log("Performing function 'send()'...");
     this.setState({ errorMessage: '' });
-    const { methodData, abi, contractAddress } = this.state;
+    const { methodData, abi, contractAddress, account } = this.state;
 
     // note: only gets first method. There could be more!
     // TODO fix this ^
@@ -282,19 +287,13 @@ class App extends Component {
         JSON.parse(abi),
         contractAddress
       );
-
       try {
-        web3.eth.getAccounts().then(accounts => {
-          try {
-            // using "..." to destructure inputs
-            myContract.methods[method.name](...method.inputs).send({
-              from: accounts[0]
-            });
-          } catch (err) {
-            this.setState({ errorMessage: err.message });
-          }
+        myContract.methods[method.name](...method.inputs).send({
+          from: account,
+          value: web3.utils.toWei(method.value || '0', 'ether')
         });
       } catch (err) {
+        console.log(err.message);
         this.setState({ errorMessage: err.message });
       }
     }
@@ -875,6 +874,7 @@ class App extends Component {
               methodTypeHelperText = 'function';
               formInputs.push(
                 <Form.Input
+                  required
                   name={method.name}
                   key={j}
                   inputindex={j}
@@ -885,14 +885,15 @@ class App extends Component {
                 />
               );
             });
-            // If it doesn't have arguments, but is payable, then make a form
+            // If it is payable, then make a form
             if (method.payable) {
               // console.log(`   Inputs: (payable)`);
               methodTypeHelperText = 'payable function';
               formInputs.push(
                 <Form.Input
-                  key={i}
-                  inputindex={i}
+                  required
+                  key={method.name + i}
+                  payable={true}
                   name={method.name}
                   inline
                   label={`Amount in ETH`}
@@ -1005,6 +1006,9 @@ class App extends Component {
     let {
       web3,
       account,
+      contractAddress,
+      contractName,
+      abi,
       contracts,
       tx,
       gwei,
@@ -1019,65 +1023,66 @@ class App extends Component {
     let connectedDisplay = [];
     let contractsDisplay = [];
     if (web3) {
-      connectedDisplay.push(
-        <Gas
-          key="Gas"
-          onUpdate={state => {
-            console.log('Gas price update:', state);
-            this.setState(state, () => {
-              console.log('GWEI set:', this.state.gwei);
-            });
-          }}
-        />
-      );
       // connectedDisplay.push(
-      //   <ContractLoader
-      //     web3={web3}
-      //     require={path => {return require(`${__dirname}/${path}`)}}
-      //     onReady={(contracts)=>{
-      //       console.log("contracts loaded",contracts)
-      //       this.setState({contracts:contracts})
-      //     }}
-      //   />
-      // );
-      // debugger;
-      // if (contracts) {
-      // connectedDisplay.push(
-      //   <Events
-      //     config={{ hide: false }}
-      //     contract={contracts}
-      //     eventName={'Create'}
-      //     block={block}
-      //     id={'_id'}
-      //     filter={{}}
-      //     onUpdate={(eventData, allEvents) => {
-      //       console.log('EVENT DATA:', eventData);
-      //       this.setState({ events: allEvents });
+      //   <Gas
+      //     key="Gas"
+      //     onUpdate={state => {
+      //       console.log('Gas price update:', state);
+      //       this.setState(state, () => {
+      //         console.log('GWEI set:', this.state.gwei);
+      //       });
       //     }}
       //   />
       // );
       if (!displayDappForm) {
-        connectedDisplay.push(
-          <Transactions
-            key="Transactions"
-            config={{ DEBUG: false }}
-            account={account}
-            gwei={gwei}
-            web3={web3}
-            block={block}
-            avgBlockTime={avgBlockTime}
-            etherscan={etherscan}
-            onReady={state => {
-              console.log('Transactions component is ready:', state);
-              this.setState(state);
-            }}
-            onReceipt={(transaction, receipt) => {
-              // this is one way to get the deployed contract address, but instead I'll switch
-              //  to a more straight forward callback system above
-              console.log('Transaction Receipt', transaction, receipt);
-            }}
-          />
-        );
+        // connectedDisplay.push(
+        //   <ContractLoaderCustom
+        //     web3={web3}
+        //     onReady={contracts => {
+        //       console.log('contracts loaded', contracts);
+        //       this.setState({ contracts: contracts });
+        //     }}
+        //     address={contractAddress}
+        //     abi={this.state.abiRaw}
+        //     contractName={contractName}
+        //   />
+        // );
+        // connectedDisplay.push(
+        //   <Events
+        //     config={{ hide: false }}
+        //     contract={contracts}
+        //     eventName={'Create'}
+        //     block={block}
+        //     id={'_id'}
+        //     filter={{}}
+        //     onUpdate={(eventData, allEvents) => {
+        //       console.log('EVENT DATA:', eventData);
+        //       this.setState({ events: allEvents });
+        //     }}
+        //   />
+        // );
+        //
+        // connectedDisplay.push(
+        //   <Transactions
+        //     key="Transactions"
+        //     config={{ DEBUG: false }}
+        //     account={account}
+        //     gwei={gwei}
+        //     web3={web3}
+        //     block={block}
+        //     avgBlockTime={avgBlockTime}
+        //     etherscan={etherscan}
+        //     onReady={state => {
+        //       console.log('Transactions component is ready:', state);
+        //       this.setState(state);
+        //     }}
+        //     onReceipt={(transaction, receipt) => {
+        //       // this is one way to get the deployed contract address, but instead I'll switch
+        //       //  to a more straight forward callback system above
+        //       console.log('Transaction Receipt', transaction, receipt);
+        //     }}
+        //   />
+        // );
       }
     }
     let dapparatus;
