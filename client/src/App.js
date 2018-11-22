@@ -678,7 +678,7 @@ class App extends Component {
   }
   renderInterface() {
     let network = this.state.requiredNetwork + '.';
-    if (this.state.requiredNetwork === 'Mainnet') {
+    if (this.state.requiredNetwork === 'mainnet') {
       network = '';
     }
     return (
