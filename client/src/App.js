@@ -677,9 +677,18 @@ class App extends Component {
     );
   }
   renderInterface() {
-    let network = this.state.requiredNetwork + '.';
-    if (this.state.requiredNetwork === 'mainnet') {
-      network = '';
+    const { requiredNetwork } = this.state;
+    let etherscan = 'https://etherscan.io/';
+    if (requiredNetwork) {
+      if (requiredNetwork == 'Unknown' || requiredNetwork == 'private') {
+        etherscan = 'http://localhost:8000/#/';
+      } else if (requiredNetwork == 'POA') {
+        etherscan = 'https://blockscout.com/poa/core/';
+      } else if (requiredNetwork == 'xDai') {
+        etherscan = 'https://blockscout.com/poa/dai/';
+      } else if (requiredNetwork != 'Mainnet') {
+        etherscan = 'https://' + requiredNetwork + '.etherscan.io/';
+      }
     }
     return (
       <div>
@@ -689,11 +698,9 @@ class App extends Component {
             <Header.Subheader>
               Network: {this.state.requiredNetwork}
               <br />
-              Contract address:{' '}
+              Contract address: {}
               <a
-                href={`https://${network}etherscan.io/address/${
-                  this.state.contractAddress
-                }`}
+                href={`${etherscan}address/${this.state.contractAddress}`}
                 target="_blank"
               >
                 {this.state.contractAddress.substring(0, 7)}...
@@ -1062,27 +1069,27 @@ class App extends Component {
         //   />
         // );
         //
-        // connectedDisplay.push(
-        //   <Transactions
-        //     key="Transactions"
-        //     config={{ DEBUG: false }}
-        //     account={account}
-        //     gwei={gwei}
-        //     web3={web3}
-        //     block={block}
-        //     avgBlockTime={avgBlockTime}
-        //     etherscan={etherscan}
-        //     onReady={state => {
-        //       console.log('Transactions component is ready:', state);
-        //       this.setState(state);
-        //     }}
-        //     onReceipt={(transaction, receipt) => {
-        //       // this is one way to get the deployed contract address, but instead I'll switch
-        //       //  to a more straight forward callback system above
-        //       console.log('Transaction Receipt', transaction, receipt);
-        //     }}
-        //   />
-        // );
+        connectedDisplay.push(
+          <Transactions
+            key="Transactions"
+            config={{ DEBUG: false }}
+            account={account}
+            gwei={gwei}
+            web3={web3}
+            block={block}
+            avgBlockTime={avgBlockTime}
+            etherscan={etherscan}
+            onReady={state => {
+              console.log('Transactions component is ready:', state);
+              this.setState(state);
+            }}
+            onReceipt={(transaction, receipt) => {
+              // this is one way to get the deployed contract address, but instead I'll switch
+              //  to a more straight forward callback system above
+              console.log('Transaction Receipt', transaction, receipt);
+            }}
+          />
+        );
       }
     }
     let dapparatus;
