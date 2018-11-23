@@ -3,6 +3,7 @@ import './App.css';
 import {
   Grid,
   Message,
+  Card,
   Form,
   Menu,
   Segment,
@@ -83,6 +84,7 @@ class App extends Component {
       loading: false,
       methodData: [],
       mnemonic: '',
+      metaData: {},
       recentContracts: {},
       userSavedContracts: {},
       externalContracts: [],
@@ -136,6 +138,7 @@ class App extends Component {
             requiredNetwork: [result.data.network] || '',
             contractName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
+            metaData: result.data.metaData || '',
             mnemonic: mnemonic,
             displayDappForm: false,
             displayLoading: false,
@@ -220,7 +223,7 @@ class App extends Component {
   handleMethodDataChange = (e, { name, value, inputindex, payable }) => {
     let newMethodData = this.state.methodData;
     const methodIndex = newMethodData.findIndex(method => method.name === name);
-    if (payable) {
+    if (inputindex === -1) {
       newMethodData[methodIndex].value = value;
     } else {
       newMethodData[methodIndex].inputs[inputindex] = value;
@@ -301,12 +304,14 @@ class App extends Component {
   // call() methods do not alter the contract state. No gas needed.
   handleSubmitCall = (e, { name }) => {
     const { abi, contractAddress, methodData } = this.state;
+    console.log("Performing function 'call()'...");
     let newMethodData = methodData;
     this.setState({ errorMessage: '' });
     // note: only gets first method. There could be more with identical name
     // TODO fix this ^
     const methodIndex = methodData.findIndex(method => method.name === name);
     const method = methodData[methodIndex];
+    console.log('method submitted' + JSON.stringify(method));
     let inputs = method.inputs || []; // return an empty array if no inputs exist
     // Generate the contract object
     // TODO instead use the contract instance created during submitDapp()
@@ -314,7 +319,9 @@ class App extends Component {
     try {
       // using "..." to destructure inputs[]
       myContract.methods[name](...inputs)
-        .call()
+        .call({
+          from: this.state.account
+        })
         .then(response => {
           if (typeof response === 'object') {
             Object.entries(response).forEach(
@@ -677,7 +684,7 @@ class App extends Component {
     );
   }
   renderInterface() {
-    const { requiredNetwork } = this.state;
+    const { requiredNetwork, metaData } = this.state;
     let etherscan = 'https://etherscan.io/';
     if (requiredNetwork) {
       if (requiredNetwork == 'Unknown' || requiredNetwork == 'private') {
@@ -690,15 +697,94 @@ class App extends Component {
         etherscan = 'https://' + requiredNetwork + '.etherscan.io/';
       }
     }
+    let displayRegistryData = 'Metadata:  (available only on mainnet)';
+    if (metaData) {
+      displayRegistryData = (
+        <div>
+          Metadata:
+          <Popup
+            hoverable
+            flowing
+            keepInViewPort
+            trigger={
+              <Button
+                size="tiny"
+                onClick={() => {
+                  window.open(metaData.data.metadata.url, '_blank');
+                }}
+              >
+                <Image inline size="mini" src={metaData.data.metadata.logo} />
+                {metaData.name}
+              </Button>
+            }
+          >
+            <Table definition collapsing>
+              <Table.Body>
+                <Table.Row>
+                  <Table.Cell>Description</Table.Cell>
+                  <Table.Cell>{metaData.data.metadata.description}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Verified</Table.Cell>
+                  <Table.Cell>
+                    {JSON.stringify(metaData.data.metadata.reputation.verified)}
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Status</Table.Cell>
+                  <Table.Cell>
+                    {metaData.data.metadata.reputation.status}
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Category</Table.Cell>
+                  <Table.Cell>
+                    {metaData.data.metadata.reputation.category}
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Self attested</Table.Cell>
+                  <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Curated</Table.Cell>
+                  <Table.Cell>{metaData.curated.toString()}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Scam info</Table.Cell>
+                  <Table.Cell>
+                    {JSON.stringify(metaData.data.scamdb)}
+                  </Table.Cell>
+                </Table.Row>
+              </Table.Body>
+            </Table>
+            Metadata powered by{' '}
+            <a target="_blank" href="https://ethregistry.org/">
+              Eth Registry
+            </a>
+          </Popup>
+        </div>
+      );
+    } else if (this.state.requiredNetwork[0] === 'Mainnet') {
+      displayRegistryData = (
+        <div>
+          Metadata: Nothing found. Add it to{' '}
+          <a target="_blank" href="https://ethregistry.org/">
+            EthRegistry.org
+          </a>
+        </div>
+      );
+    }
+
     return (
       <div>
-        <Segment>
-          <Header as="h2" textAlign="center">
-            Viewing dApp "{this.state.contractName}"
-            <Header.Subheader>
+        <Segment textAlign="center">
+          <h2>Viewing dApp "{this.state.contractName}"</h2>
+          <Grid stackable columns={2}>
+            <Grid.Column textAlign="center">
               Network: {this.state.requiredNetwork}
               <br />
-              Contract address: {}
+              Contract address:{' '}
               <a
                 href={`${etherscan}address/${this.state.contractAddress}`}
                 target="_blank"
@@ -706,29 +792,32 @@ class App extends Component {
                 {this.state.contractAddress.substring(0, 7)}...
               </a>
               <br />
+              {displayRegistryData}
+            </Grid.Column>
+            <Grid.Column textAlign="center">
               URL: oneclickdapp.com{this.state.mnemonic || '/ ...'} <br />
               (press{' '}
               {navigator.userAgent.toLowerCase().indexOf('mac') !== -1
                 ? 'Command/Cmd'
                 : 'CTRL'}{' '}
               + D to Bookmark)
-            </Header.Subheader>
-          </Header>
-          <TwitterShareButton
-            title={
-              '🔨 I just made an instant dApp called "' +
-              this.state.contractName +
-              '." View it at oneclickdapp.com' +
-              this.state.mnemonic
-            }
-            url={'www.oneclickdapp.com' + this.state.mnemonic}
-            hashtags={['oneclickdapp', 'BUIDL']}
-          >
-            <Button icon primary size="small">
-              <Icon name="twitter" />
-              Tweet this dApp
-            </Button>
-          </TwitterShareButton>
+              <TwitterShareButton
+                title={
+                  '🔨 I just made an instant dApp called "' +
+                  this.state.contractName +
+                  '." View it at oneclickdapp.com' +
+                  this.state.mnemonic
+                }
+                url={'www.oneclickdapp.com' + this.state.mnemonic}
+                hashtags={['oneclickdapp', 'BUIDL']}
+              >
+                <Button icon primary size="small">
+                  <Icon name="twitter" />
+                  Tweet this dApp
+                </Button>
+              </TwitterShareButton>
+            </Grid.Column>
+          </Grid>
         </Segment>
         <Grid stackable columns={2}>
           <Grid.Column>
@@ -900,7 +989,7 @@ class App extends Component {
                 <Form.Input
                   required
                   key={method.name + i}
-                  payable={true}
+                  inputindex={-1}
                   name={method.name}
                   inline
                   label={`Amount in ETH`}
@@ -1029,68 +1118,84 @@ class App extends Component {
     } = this.state;
     let connectedDisplay = [];
     let contractsDisplay = [];
-    if (web3) {
+    if (web3 && !displayDappForm) {
+      connectedDisplay.push(
+        <Gas
+          key="Gas"
+          onUpdate={state => {
+            console.log('Gas price update:', state);
+            this.setState(state, () => {
+              console.log('GWEI set:', this.state.gwei);
+            });
+          }}
+        />
+      );
       // connectedDisplay.push(
-      //   <Gas
-      //     key="Gas"
-      //     onUpdate={state => {
-      //       console.log('Gas price update:', state);
-      //       this.setState(state, () => {
-      //         console.log('GWEI set:', this.state.gwei);
-      //       });
+      //   <ContractLoaderCustom
+      //     key="Contract Loader Custom"
+      //     config={{ hide: false }}
+      //     web3={this.state.web3}
+      //     onReady={contracts => {
+      //       console.log('contracts loaded', contracts);
+      //       this.setState({ contracts: contracts });
+      //     }}
+      //     address={contractAddress}
+      //     abi={this.state.abiRaw}
+      //     contractName={contractName}
+      //   />
+      // );
+      // connectedDisplay.push(
+      //   <ContractLoader
+      //     key="Contract Loader"
+      //     config={{ hide: false }}
+      //     web3={this.state.web3}
+      //     require={path => {
+      //       return require(`${__dirname}/${path}`);
+      //     }}
+      //     onReady={contracts => {
+      //       console.log('contracts loaded', contracts);
+      //       this.setState({ contracts: contracts });
       //     }}
       //   />
       // );
-      if (!displayDappForm) {
-        // connectedDisplay.push(
-        //   <ContractLoaderCustom
-        //     web3={web3}
-        //     onReady={contracts => {
-        //       console.log('contracts loaded', contracts);
-        //       this.setState({ contracts: contracts });
-        //     }}
-        //     address={contractAddress}
-        //     abi={this.state.abiRaw}
-        //     contractName={contractName}
-        //   />
-        // );
-        // connectedDisplay.push(
-        //   <Events
-        //     config={{ hide: false }}
-        //     contract={contracts}
-        //     eventName={'Create'}
-        //     block={block}
-        //     id={'_id'}
-        //     filter={{}}
-        //     onUpdate={(eventData, allEvents) => {
-        //       console.log('EVENT DATA:', eventData);
-        //       this.setState({ events: allEvents });
-        //     }}
-        //   />
-        // );
-        //
-        connectedDisplay.push(
-          <Transactions
-            key="Transactions"
-            config={{ DEBUG: false }}
-            account={account}
-            gwei={gwei}
-            web3={web3}
-            block={block}
-            avgBlockTime={avgBlockTime}
-            etherscan={etherscan}
-            onReady={state => {
-              console.log('Transactions component is ready:', state);
-              this.setState(state);
-            }}
-            onReceipt={(transaction, receipt) => {
-              // this is one way to get the deployed contract address, but instead I'll switch
-              //  to a more straight forward callback system above
-              console.log('Transaction Receipt', transaction, receipt);
-            }}
-          />
-        );
-      }
+      // if (contracts) {
+      //   connectedDisplay.push(
+      //     <Events
+      //       key="Events"
+      //       config={{ hide: false, debug: true }}
+      //       contract={contracts.splitter}
+      //       eventName={'Create'}
+      //       block={block}
+      //       id={'_id'}
+      //       filter={{ _owner: account }}
+      //       onUpdate={(eventData, allEvents) => {
+      //         console.log('EVENT DATA:', eventData);
+      //         this.setState({ events: allEvents });
+      //       }}
+      //     />
+      //   );
+      // }
+      connectedDisplay.push(
+        <Transactions
+          key="Transactions"
+          config={{ DEBUG: false }}
+          account={account}
+          gwei={gwei}
+          web3={web3}
+          block={block}
+          avgBlockTime={avgBlockTime}
+          etherscan={etherscan}
+          onReady={state => {
+            console.log('Transactions component is ready:', state);
+            this.setState(state);
+          }}
+          onReceipt={(transaction, receipt) => {
+            // this is one way to get the deployed contract address, but instead I'll switch
+            //  to a more straight forward callback system above
+            console.log('Transaction Receipt', transaction, receipt);
+          }}
+        />
+      );
     }
     let dapparatus;
     if (enableDapparatus) {

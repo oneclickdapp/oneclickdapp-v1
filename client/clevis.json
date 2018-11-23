@@ -9,5 +9,5 @@
   "ROOT_FOLDER": "/home/thisguy/repos/one-click-DApps/client",
   "CRA_FOLDER": "./src",
   "TESTS_FOLDER": "tests",
-  "CONTRACTS_FOLDER": "contracts"
+  "CONTRACTS_FOLDER": "./src/contracts"
 }

@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import Blockies from 'react-blockies';
 import deepmerge from 'deepmerge';
 let defaultConfig = {};
 defaultConfig.DEBUG = true;
@@ -49,9 +48,8 @@ class ContractLoaderCustom extends Component {
     return resultingContract;
   }
   componentDidMount() {
-    let { require } = this.props;
     let { DEBUG } = this.state.config;
-    if (DEBUG) console.log('ContractLoader - Loading Contracts');
+    if (DEBUG) console.log('ContractLoaderCustom - Loading Contracts');
     let contracts = {};
     contracts[this.props.contractName] = this.contractLoader();
     this.setState({ contracts: contracts }, () => {
