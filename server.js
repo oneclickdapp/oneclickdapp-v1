@@ -14,8 +14,7 @@ var { Contract } = require('./models/contract');
 var { User } = require('./models/user');
 
 var mnGen = require('mngen'); // Random word generator
-
-process.env.NODE_ENV = 'production';
+// process.env.NODE_ENV === 'production'
 var app = express();
 app.set('port', process.env.PORT || 3001);
 // Express only serves static assets in production

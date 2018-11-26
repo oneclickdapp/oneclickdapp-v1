@@ -19,16 +19,16 @@ import {
 } from 'semantic-ui-react';
 import {
   Dapparatus,
-  // Metamask,
   Gas,
   // ContractLoader,
-  Transactions,
+  // Transactions,
   // Events,
   // Scaler,
   Blockie
 } from 'dapparatus';
 // import { DapparatusCustom } from './components/DapparatusCustom';
 // import ContractLoaderCustom from './components/ContractLoaderCustom';
+import TransactionsCustom from './components/transactionsCustom';
 import Navigation from './components/Navigation';
 import Web3 from 'web3';
 import web3 from './ethereum/web3';
@@ -744,56 +744,60 @@ class App extends Component {
                 {metaData.name}
               </Button>
             }
-            >
-          <Container>
-            <Table definition collapsing>
-              <Table.Body>
-                <Table.Row>
-                  <Table.Cell>Description</Table.Cell>
-                  <Table.Cell>{metaData.data.metadata.description}</Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Verified</Table.Cell>
-                  <Table.Cell>
-                    {JSON.stringify(metaData.data.metadata.reputation.verified)}
-                  </Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Status</Table.Cell>
-                  <Table.Cell>
-                    {metaData.data.metadata.reputation.status}
-                  </Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Category</Table.Cell>
-                  <Table.Cell>
-                    {metaData.data.metadata.reputation.category}
-                  </Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Self attested</Table.Cell>
-                  <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Curated</Table.Cell>
-                  <Table.Cell>{metaData.curated.toString()}</Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Scam info</Table.Cell>
-                  <Table.Cell>
-                    {JSON.stringify(metaData.data.scamdb)}
-                  </Table.Cell>
-                </Table.Row>
-              </Table.Body>
-            </Table>
-            Metadata powered by{' '}
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href="https://ethregistry.org/"
-            >
-              Eth Registry
-            </a>
+          >
+            <Container>
+              <Table definition collapsing>
+                <Table.Body>
+                  <Table.Row>
+                    <Table.Cell>Description</Table.Cell>
+                    <Table.Cell>
+                      {metaData.data.metadata.description}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Verified</Table.Cell>
+                    <Table.Cell>
+                      {JSON.stringify(
+                        metaData.data.metadata.reputation.verified
+                      )}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Status</Table.Cell>
+                    <Table.Cell>
+                      {metaData.data.metadata.reputation.status}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Category</Table.Cell>
+                    <Table.Cell>
+                      {metaData.data.metadata.reputation.category}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Self attested</Table.Cell>
+                    <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Curated</Table.Cell>
+                    <Table.Cell>{metaData.curated.toString()}</Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Scam info</Table.Cell>
+                    <Table.Cell>
+                      {JSON.stringify(metaData.data.scamdb)}
+                    </Table.Cell>
+                  </Table.Row>
+                </Table.Body>
+              </Table>
+              Metadata powered by{' '}
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://ethregistry.org/"
+              >
+                Eth Registry
+              </a>
             </Container>
           </Popup>
         </div>
@@ -1208,7 +1212,7 @@ class App extends Component {
       //   );
       // }
       connectedDisplay.push(
-        <Transactions
+        <TransactionsCustom
           key="Transactions"
           config={{ DEBUG: false }}
           account={account}
