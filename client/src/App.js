@@ -72,9 +72,9 @@ class App extends Component {
     this.state = {
       abi: '',
       abiRaw: '',
-      requiredNetwork: 'Rinkeby',
-      contractAddress: '0x2946c700003D1afFe4111eaEd1527D7c89749FEC',
-      contractName: 'plink',
+      requiredNetwork: '',
+      contractAddress: '',
+      contractName: '',
       errorMessage: '',
       errorMessageView: '',
       loading: false,
@@ -114,7 +114,7 @@ class App extends Component {
       this.getUserSavedContracts();
     }
   }
-  getURLContract = () => {
+  getURLContract =  () => {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 1) {
       const loading = (
@@ -134,14 +134,11 @@ class App extends Component {
       axios
         .get(`/contracts${mnemonic}`)
         .then(result => {
-          const abiObject = JSON.parse(result.data.abi);
-          const myContract = new web3.eth.Contract(
-            abiObject,
-            result.data.contractAddress
+          this.handleChangeABI(
+            {},
+            { value: JSON.stringify(result.data.abi) || '' }
           );
-          abiObject.forEach(method => this.createMethodData(method.name));
           this.setState({
-            abi: JSON.stringify(myContract.options.jsonInterface),
             requiredNetwork: [result.data.network] || '',
             contractName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
@@ -1197,7 +1194,7 @@ class App extends Component {
           if (method.stateMutability === 'view') {
             var methodInputs = []; // Building our inputs & outputs
             var methodOutputs = [];
-            console.log(i + ' ' + method.name);
+            // console.log(i + ' ' + method.name);
             // If it takes arguments, create form inputs
             method.inputs.forEach((input, j) => {
               methodInputs.push(
