@@ -8,7 +8,6 @@
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
-<<<<<<< HEAD
   },
   {
       "constant": false,
@@ -369,8 +368,6 @@
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
-=======
->>>>>>> bd9393d6c31550078ae3fe6a36218522fc1756ab
   },{
       "constant": true,
       "inputs": [],
