@@ -1,0 +1,3 @@
+.grow { transition: all .1s ease-in-out; outline: none;}
+.grow:hover { transform: scale(1.1); outline: none;}
+.grow:active { transform: scale(0.95); filter:grayscale(100%); outline: none;}

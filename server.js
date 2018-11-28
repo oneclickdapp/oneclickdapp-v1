@@ -1,3 +1,6 @@
+const Registry = require('eth-registry');
+const Web3 = require('web3');
+
 // Dependencies
 const _ = require('lodash');
 const express = require('express');
@@ -11,7 +14,7 @@ var { Contract } = require('./models/contract');
 var { User } = require('./models/user');
 
 var mnGen = require('mngen'); // Random word generator
-
+// process.env.NODE_ENV === 'production'
 var app = express();
 app.set('port', process.env.PORT || 3001);
 // Express only serves static assets in production
@@ -70,7 +73,7 @@ app.post('/contracts', (req, res) => {
 app.get('/contracts/recentContracts', (req, res) => {
   Contract.find()
     .sort({ _id: -1 })
-    .limit(10)
+    .limit(50)
     .then(contractArray => {
       recentContracts = new Array();
       contractArray.forEach(contract => {
@@ -125,13 +128,36 @@ app.get('/contracts/:mnemonic', (req, res) => {
         const contractAddress = myContract.contractAddress;
         const network = myContract.network;
         const createdAt = myContract._id.getTimestamp();
-        res.send({
-          contractName,
-          abi,
-          contractAddress,
-          network,
-          createdAt
-        });
+
+        const provider = new Web3.providers.HttpProvider(
+          `https://mainnet.infura.io/`
+        );
+        const registry = new Registry(provider);
+        let metaData = {};
+        registry
+          .get(contractAddress)
+          .then(res => {
+            metaData = res;
+            res.send({
+              contractName,
+              abi,
+              contractAddress,
+              network,
+              createdAt,
+              metaData
+            });
+          })
+          .catch(e => {
+            console.error(e);
+            res.send({
+              contractName,
+              abi,
+              contractAddress,
+              network,
+              createdAt,
+              metaData
+            });
+          });
       } else {
         res.status(400).send(`Contract not found: ${mnemonic}`);
         return;

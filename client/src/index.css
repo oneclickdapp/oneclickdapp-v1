@@ -7,6 +7,6 @@ body {
 .vertical-menu {
   text-align: center;
   width: 250px;
-  height: 300px;
+  height: 400px;
   overflow-y: auto;
 }

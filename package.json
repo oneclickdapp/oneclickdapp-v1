@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
+    "eth-registry": "^1.1.8",
     "express": "^4.16.3",
     "fs": "0.0.2",
     "lodash": "^4.17.10",
@@ -20,7 +21,8 @@
     "moment": "^2.22.2",
     "mongodb": "^2.2.36",
     "mongoose": "^5.2.4",
-    "s3": "^4.4.0"
+    "s3": "^4.4.0",
+    "web3": "^1.0.0-beta.36"
   },
   "devDependencies": {
     "concurrently": "3.1.0"

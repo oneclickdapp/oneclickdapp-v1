@@ -10,45 +10,43 @@ import {
   Icon,
   Button,
   Progress,
-  Divider,
   Popup,
   Container,
   Table,
-  Link,
   Image,
-  Transition,
   Search,
   Dropdown
 } from 'semantic-ui-react';
 import {
   Dapparatus,
   Gas,
-  ContractLoader,
-  Transactions,
-  Events,
-  Scaler,
-  Blockie,
-  Address
+  // ContractLoader,
+  // Transactions,
+  // Events,
+  // Scaler,
+  Blockie
 } from 'dapparatus';
+// import { DapparatusCustom } from './components/DapparatusCustom';
+import ContractLoaderCustom from './components/ContractLoaderCustom';
+import TransactionsCustom from './components/transactionsCustom';
 import Navigation from './components/Navigation';
 import Web3 from 'web3';
 import web3 from './ethereum/web3';
 import moment from 'moment';
 import _ from 'lodash';
-import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
+// import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
 import PropTypes from 'prop-types';
 import { TwitterShareButton } from 'react-share';
-
+// import solc from 'solc';
 const axios = require('axios');
-//Dapparatus
+// Dapparatus
 const METATX = {
   endpoint: 'http://0.0.0.0:10001/',
   contract: '0xf5bf6541843D2ba2865e9aeC153F28aaD96F6fbc'
-  //accountGenerator: "//account.metatx.io",
+  // accountGenerator: '//account.metatx.io'
 };
-const WEB3_PROVIDER = 'http://0.0.0.0:8545';
-// assets
-const chelsea = require('./assets/chelsea.png');
+const WEB3_PROVIDER = '';
+// image assets
 const chelseaHello = require('./assets/chelsea-hello.png');
 const tablet = require('./assets/tablet.png');
 const castle = require('./assets/castle.png');
@@ -82,10 +80,15 @@ class App extends Component {
       loading: false,
       methodData: [],
       mnemonic: '',
+      metaData: {},
       recentContracts: {},
       userSavedContracts: {},
       externalContracts: [],
       userHasBeenLoaded: false,
+      // ENS
+      ensSubnode: '',
+      ensFee: 0.01,
+      existingSubnodes: [],
       //Search
       results: [],
       isLoading: false,
@@ -111,7 +114,7 @@ class App extends Component {
       this.getUserSavedContracts();
     }
   }
-  getURLContract = () => {
+  getURLContract =  () => {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 1) {
       const loading = (
@@ -121,7 +124,7 @@ class App extends Component {
             <Icon name="download" />
           </Icon.Group>
           <Header as="h2">Loading...</Header>
-          <Image centered src={tablet} size="large" />
+          <Image centered src={tablet} />
         </div>
       );
       this.setState({
@@ -131,19 +134,20 @@ class App extends Component {
       axios
         .get(`/contracts${mnemonic}`)
         .then(result => {
+          this.handleChangeABI(
+            {},
+            { value: JSON.stringify(result.data.abi) || '' }
+          );
           this.setState({
             requiredNetwork: [result.data.network] || '',
             contractName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
+            metaData: result.data.metaData || '',
             mnemonic: mnemonic,
             displayDappForm: false,
             displayLoading: false,
             enableDapparatus: true
           });
-          this.handleChangeABI(
-            {},
-            { value: JSON.stringify(result.data.abi) || '' }
-          );
         })
         .catch(function(err) {
           console.log(err);
@@ -171,7 +175,10 @@ class App extends Component {
           userHasBeenLoaded: true
         });
       })
-      .catch(err => console.log(err));
+      .catch
+      // err =>
+      // console.log(err)
+      ();
   };
   getExternalContracts = () => {
     axios
@@ -183,6 +190,10 @@ class App extends Component {
       })
       .catch(err => console.log(err));
   };
+  getExistingSubnodes = () => {
+    const values = [{ title: 'mydapp' }, { title: 'cooldapp' }];
+    this.setState({ existingSubnodes: values });
+  };
   handleChange = (e, { name, value }) => {
     this.setState({ [name]: value });
   };
@@ -192,20 +203,39 @@ class App extends Component {
     this.setState(update);
   }
   handleChangeABI = (e, { value }) => {
-    this.setState({ abiRaw: value, loading: true });
+    this.setState({ abi: '', abiRaw: value, loading: true, errorMessage: '' });
     const { contractAddress } = this.state;
-    this.setState({ errorMessage: '', abi: '' });
     if (value) {
       // Don't run unless there is some text present
       // Check for proper formatting and create a new contract instance
       try {
-        const abiObject = JSON.parse(value);
-        const myContract = new web3.eth.Contract(abiObject, contractAddress);
-        // Save the formatted abi for use in renderInterface()
-        this.setState({
-          abi: JSON.stringify(myContract.options.jsonInterface)
-        });
-        abiObject.forEach(method => this.createMethodData(method.name));
+        if (value.includes('pragma')) {
+          // Check if it is a smart contract
+          // console.log('input is a smart contract');
+          // // var output = solc.compile(value);
+          // console.log(JSON.stringify(output));
+          // output.contracts['splitter'].interface;
+          this.setState({ solidity: value });
+        } else {
+          // Parse the ABI normally and apply fixes as needed
+          const abiObject = JSON.parse(value);
+          // Name any unnammed outputs (fix for ABI/web3 issue on mainnet)
+          abiObject.forEach((method, i) => {
+            if (method.stateMutability === 'view') {
+              method.outputs.forEach((output, j) => {
+                if (!abiObject[i].outputs[j].name) {
+                  abiObject[i].outputs[j].name = '(unnamed' + (j + 1) + ')';
+                }
+              });
+            }
+          });
+          const myContract = new web3.eth.Contract(abiObject, contractAddress);
+          // Save the formatted abi for use in renderInterface()
+          this.setState({
+            abi: JSON.stringify(myContract.options.jsonInterface)
+          });
+          abiObject.forEach(method => this.createMethodData(method.name));
+        }
       } catch (err) {
         this.setState({
           errorMessage: err.message
@@ -216,10 +246,14 @@ class App extends Component {
     this.setState({ loading: false });
   };
   // Takes inputs from the user and stores them to JSON object methodArguments
-  handleMethodDataChange = (e, { name, value, inputindex }) => {
+  handleMethodDataChange = (e, { name, value, inputindex, payable }) => {
     let newMethodData = this.state.methodData;
     const methodIndex = newMethodData.findIndex(method => method.name === name);
-    newMethodData[methodIndex].inputs[inputindex] = value;
+    if (inputindex === -1) {
+      newMethodData[methodIndex].value = value;
+    } else {
+      newMethodData[methodIndex].inputs[inputindex] = value;
+    }
     this.setState({ methodData: newMethodData });
     // console.log(JSON.stringify(this.state.methodData));
   };
@@ -267,7 +301,7 @@ class App extends Component {
   handleSubmitSend = (e, { name }) => {
     console.log("Performing function 'send()'...");
     this.setState({ errorMessage: '' });
-    const { methodData, abi, contractAddress } = this.state;
+    const { methodData, abi, contractAddress, account } = this.state;
 
     // note: only gets first method. There could be more!
     // TODO fix this ^
@@ -282,19 +316,13 @@ class App extends Component {
         JSON.parse(abi),
         contractAddress
       );
-
       try {
-        web3.eth.getAccounts().then(accounts => {
-          try {
-            // using "..." to destructure inputs
-            myContract.methods[method.name](...method.inputs).send({
-              from: accounts[0]
-            });
-          } catch (err) {
-            this.setState({ errorMessage: err.message });
-          }
+        myContract.methods[method.name](...method.inputs).send({
+          from: account,
+          value: web3.utils.toWei(method.value || '0', 'ether')
         });
       } catch (err) {
+        console.log(err.message);
         this.setState({ errorMessage: err.message });
       }
     }
@@ -302,12 +330,14 @@ class App extends Component {
   // call() methods do not alter the contract state. No gas needed.
   handleSubmitCall = (e, { name }) => {
     const { abi, contractAddress, methodData } = this.state;
+    console.log("Performing function 'call()'...");
     let newMethodData = methodData;
     this.setState({ errorMessage: '' });
     // note: only gets first method. There could be more with identical name
     // TODO fix this ^
     const methodIndex = methodData.findIndex(method => method.name === name);
     const method = methodData[methodIndex];
+    console.log('method submitted' + JSON.stringify(method));
     let inputs = method.inputs || []; // return an empty array if no inputs exist
     // Generate the contract object
     // TODO instead use the contract instance created during submitDapp()
@@ -315,7 +345,9 @@ class App extends Component {
     try {
       // using "..." to destructure inputs[]
       myContract.methods[name](...inputs)
-        .call()
+        .call({
+          from: this.state.account
+        })
         .then(response => {
           if (typeof response === 'object') {
             Object.entries(response).forEach(
@@ -353,6 +385,26 @@ class App extends Component {
       });
     }, 300);
   };
+  handleEnsSearchChange = (e, { value }) => {
+    this.setState({ isLoading: true, ensSubnode: value });
+    setTimeout(() => {
+      if (value.length < 1) return this.resetComponent();
+      const re = new RegExp(_.escapeRegExp(value), 'i');
+      const isMatch = result => re.test(result.title);
+      this.getExistingSubnodes();
+      console.log(
+        'existing subnodes:' + JSON.stringify(this.state.externalContracts)
+      );
+      console.log(
+        'results' +
+          JSON.stringify(_.filter(this.state.externalContracts, isMatch))
+      );
+      this.setState({
+        isLoading: false,
+        results: _.filter(this.state.externalContracts, isMatch)
+      });
+    }, 300);
+  };
   createMethodData = name => {
     var newMethodData = this.state.methodData;
     // Check whether the method exists in the arguments list
@@ -384,18 +436,26 @@ class App extends Component {
                 <ol>
                   <li>
                     Deploy your smart contract using{' '}
-                    <a href="http://remix.ethereum.org" target="_blank">
+                    <a
+                      href="http://remix.ethereum.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       Remix
-                    </a>,{' '}
+                    </a>
+                    ,{' '}
                     <a
                       href="https://github.com/austintgriffith/clevis"
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
                       Clevis
-                    </a>, or{' '}
+                    </a>
+                    , or{' '}
                     <a
                       href="https://truffleframework.com/tutorials/pet-shop"
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
                       Truffle.
                     </a>
@@ -405,10 +465,12 @@ class App extends Component {
                     <a
                       href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
                       {' '}
                       ABI
-                    </a>, network, and a name.
+                    </a>
+                    , network, and a name.
                   </li>
                   <li>Choose a security level (high/low).</li>
                 </ol>
@@ -567,10 +629,12 @@ class App extends Component {
                         proper formatting listed in the{' '}
                         <a
                           target="_blank"
+                          rel="noopener noreferrer"
                           href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
                         >
                           Solidity docs
-                        </a>.
+                        </a>
+                        .
                       </Popup>
                     </div>
                   }
@@ -613,7 +677,8 @@ class App extends Component {
                   <Header.Subheader>
                     Unique URL
                     <br />
-                    Instant<br />
+                    Instant
+                    <br />
                     Free
                   </Header.Subheader>
                 </Header>
@@ -632,11 +697,13 @@ class App extends Component {
                 <Header as="h2">
                   High (coming soon)
                   <Header.Subheader>
-                    <Icon name="world" />Custom Ethereum Name Service URL
+                    <Icon name="world" />
+                    Custom Ethereum Name Service URL
                     <br />
                     Permanent IPFS storage
                     <br />
-                    <Icon name="dollar" />Pay what you want
+                    <Icon name="dollar" />
+                    Pay what you want
                   </Header.Subheader>
                 </Header>
                 <Button
@@ -644,12 +711,79 @@ class App extends Component {
                   size="huge"
                   icon="lock"
                   color="green"
-                  onClick={this.handleGenerateDapp}
+                  onClick={() => this.setState({ currentDappFormStep: 4 })}
                   content="Create dApp"
                 />
               </Segment>
             </Grid.Column>
           </Grid>
+          <Navigation
+            step={currentDappFormStep}
+            direction="left"
+            onUpdate={state => {
+              this.setState({ currentDappFormStep: 2 });
+            }}
+          />
+        </div>
+      );
+    } else if (currentDappFormStep === 4) {
+      const resultRenderer = ({ title }) => [
+        <div key={title}>
+          <Header>{title}</Header>
+        </div>
+      ];
+      resultRenderer.propTypes = {
+        title: PropTypes.string
+      };
+
+      formDisplay = (
+        <div>
+          <Image size="small" centered src={castle} />
+          <Header as="h2" textAlign="center">
+            Name your castle
+          </Header>
+          <Form
+            error={!!this.state.errorMessage}
+            onSubmit={() =>
+              this.setState({
+                currentDappFormStep: 3
+              })
+            }
+          >
+            <Search
+              fluid
+              // label=".oneclickdapp.eth"
+              // labelPosition="right"
+              inline
+              noResultsMessage="This name is available!"
+              loading={this.state.isLoading}
+              onSearchChange={_.debounce(this.handleEnsSearchChange, 500, {
+                leading: true
+              })}
+              placeholder="mydApp"
+              value={this.state.ensSubnode}
+              results={this.state.results}
+              resultRenderer={resultRenderer}
+              // onResultSelect={this.handleResultSelect}
+              required={true}
+            />
+            <Form.Input
+              label="Name your price (ETH)"
+              required
+              inline
+              name="ensFee"
+              onChange={this.handleChange}
+              value={this.state.ensFee}
+            />
+            {this.state.results}
+            <Message
+              attached="top"
+              error
+              header="Oops!"
+              content={this.state.errorMessage}
+            />
+            <Navigation direction="right" formSubmit={true} />
+          </Form>
           <Navigation
             step={currentDappFormStep}
             direction="left"
@@ -678,51 +812,159 @@ class App extends Component {
     );
   }
   renderInterface() {
-    let network = this.state.requiredNetwork + '.';
-    if (this.state.requiredNetwork === 'Mainnet') {
-      network = '';
+    const { requiredNetwork, metaData } = this.state;
+    let etherscan = 'https://etherscan.io/';
+    if (requiredNetwork) {
+      if (
+        requiredNetwork[0] === 'Unknown' ||
+        requiredNetwork[0] === 'private'
+      ) {
+        etherscan = 'http://localhost:8000/#/';
+      } else if (requiredNetwork[0] === 'POA') {
+        etherscan = 'https://blockscout.com/poa/core/';
+      } else if (requiredNetwork[0] === 'xDai') {
+        etherscan = 'https://blockscout.com/poa/dai/';
+      } else if (requiredNetwork[0] !== 'Mainnet') {
+        etherscan = 'https://' + requiredNetwork[0] + '.etherscan.io/';
+      }
     }
+    let displayRegistryData = 'Metadata:  (available only on mainnet)';
+    if (metaData) {
+      displayRegistryData = (
+        <div>
+          Metadata:
+          <Popup
+            hoverable
+            flowing
+            keepInViewPort
+            position="bottom left"
+            trigger={
+              <Button
+                size="tiny"
+                onClick={() => {
+                  window.open(metaData.data.metadata.url, '_blank');
+                }}
+              >
+                <Image inline size="mini" src={metaData.data.metadata.logo} />
+                {metaData.name}
+              </Button>
+            }
+          >
+            <Container>
+              <Table definition collapsing>
+                <Table.Body>
+                  <Table.Row>
+                    <Table.Cell>Description</Table.Cell>
+                    <Table.Cell>
+                      {metaData.data.metadata.description}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Verified</Table.Cell>
+                    <Table.Cell>
+                      {JSON.stringify(
+                        metaData.data.metadata.reputation.verified
+                      )}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Status</Table.Cell>
+                    <Table.Cell>
+                      {metaData.data.metadata.reputation.status}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Category</Table.Cell>
+                    <Table.Cell>
+                      {metaData.data.metadata.reputation.category}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Self attested</Table.Cell>
+                    <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Curated</Table.Cell>
+                    <Table.Cell>{metaData.curated.toString()}</Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>Scam info</Table.Cell>
+                    <Table.Cell>
+                      {JSON.stringify(metaData.data.scamdb)}
+                    </Table.Cell>
+                  </Table.Row>
+                </Table.Body>
+              </Table>
+              Metadata powered by{' '}
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://ethregistry.org/"
+              >
+                Eth Registry
+              </a>
+            </Container>
+          </Popup>
+        </div>
+      );
+    } else if (this.state.requiredNetwork[0] === 'Mainnet') {
+      displayRegistryData = (
+        <div>
+          Metadata: Nothing found. Add it to{' '}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="http://www.oneclickdapp.com/resume-reflex/"
+          >
+            EthRegistry
+          </a>
+        </div>
+      );
+    }
+
     return (
       <div>
-        <Segment>
-          <Header as="h2" textAlign="center">
-            Viewing dApp "{this.state.contractName}"
-            <Header.Subheader>
+        <Segment textAlign="center">
+          <h2>Viewing dApp "{this.state.contractName}"</h2>
+          <Grid stackable columns={2}>
+            <Grid.Column textAlign="center">
               Network: {this.state.requiredNetwork}
               <br />
               Contract address:{' '}
               <a
-                href={`https://${network}etherscan.io/address/${
-                  this.state.contractAddress
-                }`}
+                href={`${etherscan}address/${this.state.contractAddress}`}
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 {this.state.contractAddress.substring(0, 7)}...
               </a>
               <br />
+              {displayRegistryData}
+            </Grid.Column>
+            <Grid.Column textAlign="center">
               URL: oneclickdapp.com{this.state.mnemonic || '/ ...'} <br />
               (press{' '}
               {navigator.userAgent.toLowerCase().indexOf('mac') !== -1
                 ? 'Command/Cmd'
                 : 'CTRL'}{' '}
               + D to Bookmark)
-            </Header.Subheader>
-          </Header>
-          <TwitterShareButton
-            title={
-              '🔨 I just made an instant dApp called "' +
-              this.state.contractName +
-              '." View it at oneclickdapp.com' +
-              this.state.mnemonic
-            }
-            url={'www.oneclickdapp.com' + this.state.mnemonic}
-            hashtags={['oneclickdapp', 'BUIDL']}
-          >
-            <Button icon primary size="small">
-              <Icon name="twitter" />
-              Tweet this dApp
-            </Button>
-          </TwitterShareButton>
+              <TwitterShareButton
+                title={
+                  '🔨 I just made an instant dApp called "' +
+                  this.state.contractName +
+                  '." View it at oneclickdapp.com' +
+                  this.state.mnemonic
+                }
+                url={'www.oneclickdapp.com' + this.state.mnemonic}
+                hashtags={['oneclickdapp', 'BUIDL']}
+              >
+                <Button icon primary size="small">
+                  <Icon name="twitter" />
+                  Tweet this dApp
+                </Button>
+              </TwitterShareButton>
+            </Grid.Column>
+          </Grid>
         </Segment>
         <Grid stackable columns={2}>
           <Grid.Column>
@@ -753,7 +995,7 @@ class App extends Component {
         </Header>
         <div style={{ overflow: 'auto', maxHeight: 300 }}>
           {recentContracts.length > 0 ? (
-            <Table unstackable selectable>
+            <Table fixed unstackable selectable>
               <Table.Header>
                 <Table.Row textAlign="center">
                   <Table.HeaderCell>
@@ -815,7 +1057,7 @@ class App extends Component {
         </Header>
         <div style={{ overflow: 'auto', maxHeight: 300 }}>
           {userSavedContracts !== undefined && userSavedContracts.length > 0 ? (
-            <Table unstackable>
+            <Table fixed selectable unstackable>
               <Table.Header>
                 <Table.Row textAlign="center">
                   <Table.HeaderCell>
@@ -849,8 +1091,9 @@ class App extends Component {
             </Table>
           ) : (
             <Segment textAlign="center">
-              You haven't created anything yet<br />(Check that MetaMask is
-              unlocked)
+              You haven't created anything yet
+              <br />
+              (Check that MetaMask is unlocked)
             </Segment>
           )}
         </div>
@@ -875,6 +1118,7 @@ class App extends Component {
               methodTypeHelperText = 'function';
               formInputs.push(
                 <Form.Input
+                  required
                   name={method.name}
                   key={j}
                   inputindex={j}
@@ -885,14 +1129,15 @@ class App extends Component {
                 />
               );
             });
-            // If it doesn't have arguments, but is payable, then make a form
+            // If it is payable, then make a form
             if (method.payable) {
               // console.log(`   Inputs: (payable)`);
               methodTypeHelperText = 'payable function';
               formInputs.push(
                 <Form.Input
-                  key={i}
-                  inputindex={i}
+                  required
+                  key={method.name + i}
+                  inputindex={-1}
                   name={method.name}
                   inline
                   label={`Amount in ETH`}
@@ -949,6 +1194,7 @@ class App extends Component {
           if (method.stateMutability === 'view') {
             var methodInputs = []; // Building our inputs & outputs
             var methodOutputs = [];
+            // console.log(i + ' ' + method.name);
             // If it takes arguments, create form inputs
             method.inputs.forEach((input, j) => {
               methodInputs.push(
@@ -966,7 +1212,6 @@ class App extends Component {
 
             method.outputs.forEach((output, j) => {
               const outputData = methodData[i].outputs[j];
-
               methodOutputs.push(
                 <p key={j}>
                   {`${output.name || '(unnamed)'}
@@ -1003,10 +1248,7 @@ class App extends Component {
   }
   render() {
     let {
-      web3,
       account,
-      contracts,
-      tx,
       gwei,
       block,
       avgBlockTime,
@@ -1017,8 +1259,7 @@ class App extends Component {
       enableDapparatus
     } = this.state;
     let connectedDisplay = [];
-    let contractsDisplay = [];
-    if (web3) {
+    if (web3 && !displayDappForm) {
       connectedDisplay.push(
         <Gas
           key="Gas"
@@ -1031,54 +1272,71 @@ class App extends Component {
         />
       );
       // connectedDisplay.push(
-      //   <ContractLoader
-      //     web3={web3}
-      //     require={path => {return require(`${__dirname}/${path}`)}}
-      //     onReady={(contracts)=>{
-      //       console.log("contracts loaded",contracts)
-      //       this.setState({contracts:contracts})
-      //     }}
-      //   />
-      // );
-      // debugger;
-      // if (contracts) {
-      // connectedDisplay.push(
-      //   <Events
+      //   <ContractLoaderCustom
+      //     key="Contract Loader Custom"
       //     config={{ hide: false }}
-      //     contract={contracts}
-      //     eventName={'Create'}
-      //     block={block}
-      //     id={'_id'}
-      //     filter={{}}
-      //     onUpdate={(eventData, allEvents) => {
-      //       console.log('EVENT DATA:', eventData);
-      //       this.setState({ events: allEvents });
+      //     web3={this.state.web3}
+      //     onReady={contracts => {
+      //       console.log('contracts loaded', contracts);
+      //       this.setState({ contracts: contracts });
+      //     }}
+      //     address={contractAddress}
+      //     abi={this.state.abiRaw}
+      //     contractName={contractName}
+      //   />
+      // );
+      // connectedDisplay.push(
+      //   <ContractLoader
+      //     key="Contract Loader"
+      //     config={{ hide: false }}
+      //     web3={this.state.web3}
+      //     require={path => {
+      //       return require(`${__dirname}/${path}`);
+      //     }}
+      //     onReady={contracts => {
+      //       console.log('contracts loaded', contracts);
+      //       this.setState({ contracts: contracts });
       //     }}
       //   />
       // );
-      if (!displayDappForm) {
-        connectedDisplay.push(
-          <Transactions
-            key="Transactions"
-            config={{ DEBUG: false }}
-            account={account}
-            gwei={gwei}
-            web3={web3}
-            block={block}
-            avgBlockTime={avgBlockTime}
-            etherscan={etherscan}
-            onReady={state => {
-              console.log('Transactions component is ready:', state);
-              this.setState(state);
-            }}
-            onReceipt={(transaction, receipt) => {
-              // this is one way to get the deployed contract address, but instead I'll switch
-              //  to a more straight forward callback system above
-              console.log('Transaction Receipt', transaction, receipt);
-            }}
-          />
-        );
-      }
+      // if (contracts) {
+      //   connectedDisplay.push(
+      //     <Events
+      //       key="Events"
+      //       config={{ hide: false, debug: true }}
+      //       contract={contracts.splitter}
+      //       eventName={'Create'}
+      //       block={block}
+      //       id={'_id'}
+      //       filter={{ _owner: account }}
+      //       onUpdate={(eventData, allEvents) => {
+      //         console.log('EVENT DATA:', eventData);
+      //         this.setState({ events: allEvents });
+      //       }}
+      //     />
+      //   );
+      // }
+      connectedDisplay.push(
+        <TransactionsCustom
+          key="Transactions"
+          config={{ DEBUG: false }}
+          account={account}
+          gwei={gwei}
+          web3={web3}
+          block={block}
+          avgBlockTime={avgBlockTime}
+          etherscan={etherscan}
+          onReady={state => {
+            console.log('Transactions component is ready:', state);
+            this.setState(state);
+          }}
+          onReceipt={(transaction, receipt) => {
+            // this is one way to get the deployed contract address, but instead I'll switch
+            //  to a more straight forward callback system above
+            console.log('Transaction Receipt', transaction, receipt);
+          }}
+        />
+      );
     }
     let dapparatus;
     if (enableDapparatus) {
@@ -1090,7 +1348,7 @@ class App extends Component {
             metatxAccountGenerator: false,
             hide: displayDappForm,
             boxStyle: {
-              paddingTop: 10
+              paddingTop: 8
             },
             textStyle: {
               color: '#e5e5e5'
@@ -1103,7 +1361,7 @@ class App extends Component {
           metatx={METATX}
           fallbackWeb3Provider={new Web3.providers.HttpProvider(WEB3_PROVIDER)}
           onUpdate={state => {
-            console.log('metamask state update:', state);
+            console.log('dapparatus state update:', state);
             if (state.web3Provider) {
               state.web3 = new Web3(state.web3Provider);
               this.setState(state);
@@ -1111,10 +1369,6 @@ class App extends Component {
           }}
         />
       );
-    }
-
-    if (this.state.hasError) {
-      return <h1>Something went wrong.</h1>;
     }
     let mainDisplay = [];
     if (displayLoading) {
@@ -1126,21 +1380,18 @@ class App extends Component {
     }
     return (
       <div className="App">
-        <Menu size="large" inverted fixed="top">
+        <Menu size="huge" inverted fixed="top">
           <Container>
-            <Menu.Item>
-              <Image size="mini" src={chelsea} />
-              One Click dApp
-            </Menu.Item>
+            <Menu.Item>One Click dApp</Menu.Item>
             <Menu.Item as="a" href="http://oneclickdapp.com">
               <Icon name="plus" /> New
             </Menu.Item>
             <Menu.Item>
               <Dropdown simple text="About">
                 <Dropdown.Menu>
-                  <Dropdown.Item text="Help" image={question} />
                   <Dropdown.Item
                     target="_blank"
+                    rel="noopener noreferrer"
                     href="https://github.com/blockchainbuddha/one-click-DApps"
                     image={github}
                     text="Github"
@@ -1149,8 +1400,16 @@ class App extends Component {
                     image={twitter}
                     href="https://twitter.com/pi0neerpat"
                     target="_blank"
+                    rel="noopener noreferrer"
                     text="twitter"
                   />
+                  <Popup
+                    flowing
+                    hoverable
+                    trigger={<Dropdown.Item text="Help" image={question} />}
+                  >
+                    Need help? Use the chat in the bottom right corner.
+                  </Popup>
                 </Dropdown.Menu>
               </Dropdown>
             </Menu.Item>
