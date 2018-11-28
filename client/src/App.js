@@ -27,7 +27,7 @@ import {
   Blockie
 } from 'dapparatus';
 // import { DapparatusCustom } from './components/DapparatusCustom';
-// import ContractLoaderCustom from './components/ContractLoaderCustom';
+import ContractLoaderCustom from './components/ContractLoaderCustom';
 import TransactionsCustom from './components/transactionsCustom';
 import Navigation from './components/Navigation';
 import Web3 from 'web3';
@@ -37,7 +37,7 @@ import _ from 'lodash';
 // import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
 import PropTypes from 'prop-types';
 import { TwitterShareButton } from 'react-share';
-
+// import solc from 'solc';
 const axios = require('axios');
 // Dapparatus
 const METATX = {
@@ -72,9 +72,9 @@ class App extends Component {
     this.state = {
       abi: '',
       abiRaw: '',
-      requiredNetwork: '',
-      contractAddress: '',
-      contractName: '',
+      requiredNetwork: 'Rinkeby',
+      contractAddress: '0x2946c700003D1afFe4111eaEd1527D7c89749FEC',
+      contractName: 'plink',
       errorMessage: '',
       errorMessageView: '',
       loading: false,
@@ -85,6 +85,10 @@ class App extends Component {
       userSavedContracts: {},
       externalContracts: [],
       userHasBeenLoaded: false,
+      // ENS
+      ensSubnode: '',
+      ensFee: 0.01,
+      existingSubnodes: [],
       //Search
       results: [],
       isLoading: false,
@@ -130,7 +134,14 @@ class App extends Component {
       axios
         .get(`/contracts${mnemonic}`)
         .then(result => {
+          const abiObject = JSON.parse(result.data.abi);
+          const myContract = new web3.eth.Contract(
+            abiObject,
+            result.data.contractAddress
+          );
+          abiObject.forEach(method => this.createMethodData(method.name));
           this.setState({
+            abi: JSON.stringify(myContract.options.jsonInterface),
             requiredNetwork: [result.data.network] || '',
             contractName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
@@ -140,10 +151,6 @@ class App extends Component {
             displayLoading: false,
             enableDapparatus: true
           });
-          this.handleChangeABI(
-            {},
-            { value: JSON.stringify(result.data.abi) || '' }
-          );
         })
         .catch(function(err) {
           console.log(err);
@@ -186,6 +193,10 @@ class App extends Component {
       })
       .catch(err => console.log(err));
   };
+  getExistingSubnodes = () => {
+    const values = [{ title: 'mydapp' }, { title: 'cooldapp' }];
+    this.setState({ existingSubnodes: values });
+  };
   handleChange = (e, { name, value }) => {
     this.setState({ [name]: value });
   };
@@ -201,23 +212,33 @@ class App extends Component {
       // Don't run unless there is some text present
       // Check for proper formatting and create a new contract instance
       try {
-        const abiObject = JSON.parse(value);
-        // Name any unnammed outputs (fix for ABI/web3 issue on mainnet)
-        abiObject.forEach((method, i) => {
-          if (method.stateMutability === 'view') {
-            method.outputs.forEach((output, j) => {
-              if (!abiObject[i].outputs[j].name) {
-                abiObject[i].outputs[j].name = '(unnamed' + (j + 1) + ')';
-              }
-            });
-          }
-        });
-        const myContract = new web3.eth.Contract(abiObject, contractAddress);
-        // Save the formatted abi for use in renderInterface()
-        this.setState({
-          abi: JSON.stringify(myContract.options.jsonInterface)
-        });
-        abiObject.forEach(method => this.createMethodData(method.name));
+        if (value.includes('pragma')) {
+          // Check if it is a smart contract
+          // console.log('input is a smart contract');
+          // // var output = solc.compile(value);
+          // console.log(JSON.stringify(output));
+          // output.contracts['splitter'].interface;
+          this.setState({ solidity: value });
+        } else {
+          // Parse the ABI normally and apply fixes as needed
+          const abiObject = JSON.parse(value);
+          // Name any unnammed outputs (fix for ABI/web3 issue on mainnet)
+          abiObject.forEach((method, i) => {
+            if (method.stateMutability === 'view') {
+              method.outputs.forEach((output, j) => {
+                if (!abiObject[i].outputs[j].name) {
+                  abiObject[i].outputs[j].name = '(unnamed' + (j + 1) + ')';
+                }
+              });
+            }
+          });
+          const myContract = new web3.eth.Contract(abiObject, contractAddress);
+          // Save the formatted abi for use in renderInterface()
+          this.setState({
+            abi: JSON.stringify(myContract.options.jsonInterface)
+          });
+          abiObject.forEach(method => this.createMethodData(method.name));
+        }
       } catch (err) {
         this.setState({
           errorMessage: err.message
@@ -361,6 +382,26 @@ class App extends Component {
       if (value.length < 1) return this.resetComponent();
       const re = new RegExp(_.escapeRegExp(value), 'i');
       const isMatch = result => re.test(result.title);
+      this.setState({
+        isLoading: false,
+        results: _.filter(this.state.externalContracts, isMatch)
+      });
+    }, 300);
+  };
+  handleEnsSearchChange = (e, { value }) => {
+    this.setState({ isLoading: true, ensSubnode: value });
+    setTimeout(() => {
+      if (value.length < 1) return this.resetComponent();
+      const re = new RegExp(_.escapeRegExp(value), 'i');
+      const isMatch = result => re.test(result.title);
+      this.getExistingSubnodes();
+      console.log(
+        'existing subnodes:' + JSON.stringify(this.state.externalContracts)
+      );
+      console.log(
+        'results' +
+          JSON.stringify(_.filter(this.state.externalContracts, isMatch))
+      );
       this.setState({
         isLoading: false,
         results: _.filter(this.state.externalContracts, isMatch)
@@ -673,12 +714,79 @@ class App extends Component {
                   size="huge"
                   icon="lock"
                   color="green"
-                  onClick={this.handleGenerateDapp}
+                  onClick={() => this.setState({ currentDappFormStep: 4 })}
                   content="Create dApp"
                 />
               </Segment>
             </Grid.Column>
           </Grid>
+          <Navigation
+            step={currentDappFormStep}
+            direction="left"
+            onUpdate={state => {
+              this.setState({ currentDappFormStep: 2 });
+            }}
+          />
+        </div>
+      );
+    } else if (currentDappFormStep === 4) {
+      const resultRenderer = ({ title }) => [
+        <div key={title}>
+          <Header>{title}</Header>
+        </div>
+      ];
+      resultRenderer.propTypes = {
+        title: PropTypes.string
+      };
+
+      formDisplay = (
+        <div>
+          <Image size="small" centered src={castle} />
+          <Header as="h2" textAlign="center">
+            Name your castle
+          </Header>
+          <Form
+            error={!!this.state.errorMessage}
+            onSubmit={() =>
+              this.setState({
+                currentDappFormStep: 3
+              })
+            }
+          >
+            <Search
+              fluid
+              // label=".oneclickdapp.eth"
+              // labelPosition="right"
+              inline
+              noResultsMessage="This name is available!"
+              loading={this.state.isLoading}
+              onSearchChange={_.debounce(this.handleEnsSearchChange, 500, {
+                leading: true
+              })}
+              placeholder="mydApp"
+              value={this.state.ensSubnode}
+              results={this.state.results}
+              resultRenderer={resultRenderer}
+              // onResultSelect={this.handleResultSelect}
+              required={true}
+            />
+            <Form.Input
+              label="Name your price (ETH)"
+              required
+              inline
+              name="ensFee"
+              onChange={this.handleChange}
+              value={this.state.ensFee}
+            />
+            {this.state.results}
+            <Message
+              attached="top"
+              error
+              header="Oops!"
+              content={this.state.errorMessage}
+            />
+            <Navigation direction="right" formSubmit={true} />
+          </Form>
           <Navigation
             step={currentDappFormStep}
             direction="left"
@@ -1089,6 +1197,7 @@ class App extends Component {
           if (method.stateMutability === 'view') {
             var methodInputs = []; // Building our inputs & outputs
             var methodOutputs = [];
+            console.log(i + ' ' + method.name);
             // If it takes arguments, create form inputs
             method.inputs.forEach((input, j) => {
               methodInputs.push(
@@ -1106,7 +1215,6 @@ class App extends Component {
 
             method.outputs.forEach((output, j) => {
               const outputData = methodData[i].outputs[j];
-
               methodOutputs.push(
                 <p key={j}>
                   {`${output.name || '(unnamed)'}
@@ -1284,7 +1392,6 @@ class App extends Component {
             <Menu.Item>
               <Dropdown simple text="About">
                 <Dropdown.Menu>
-                  <Dropdown.Item text="Help" image={question} />
                   <Dropdown.Item
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1299,6 +1406,13 @@ class App extends Component {
                     rel="noopener noreferrer"
                     text="twitter"
                   />
+                  <Popup
+                    flowing
+                    hoverable
+                    trigger={<Dropdown.Item text="Help" image={question} />}
+                  >
+                    Need help? Use the chat in the bottom right corner.
+                  </Popup>
                 </Dropdown.Menu>
               </Dropdown>
             </Menu.Item>
