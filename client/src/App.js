@@ -14,20 +14,21 @@ import {
   Container,
   Table,
   Image,
+  Transition,
   Search,
   Dropdown
 } from 'semantic-ui-react';
 import {
   Dapparatus,
   Gas,
-  // ContractLoader,
+  ContractLoader,
   // Transactions,
   // Events,
   // Scaler,
   Blockie
 } from 'dapparatus';
 // import { DapparatusCustom } from './components/DapparatusCustom';
-import ContractLoaderCustom from './components/ContractLoaderCustom';
+// import ContractLoaderCustom from './components/ContractLoaderCustom';
 import TransactionsCustom from './components/transactionsCustom';
 import Navigation from './components/Navigation';
 import Web3 from 'web3';
@@ -37,7 +38,7 @@ import _ from 'lodash';
 // import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
 import PropTypes from 'prop-types';
 import { TwitterShareButton } from 'react-share';
-// import solc from 'solc';
+var ENS = require('ethereum-ens');
 const axios = require('axios');
 // Dapparatus
 const METATX = {
@@ -86,7 +87,7 @@ class App extends Component {
       externalContracts: [],
       userHasBeenLoaded: false,
       // ENS
-      ensSubnode: '',
+      ensSubnode: 'myDapp2',
       ensFee: 0.01,
       existingSubnodes: [],
       //Search
@@ -101,7 +102,8 @@ class App extends Component {
       web3: false,
       account: false,
       gwei: 4,
-      doingTransaction: false
+      doingTransaction: false,
+      customLoader: false
     };
   }
   componentDidMount = async () => {
@@ -144,6 +146,7 @@ class App extends Component {
             {},
             { value: JSON.stringify(result.data.abi) || '' }
           );
+          document.title = `oneclickdapp: ${result.data.contractName}`;
           this.setState({
             requiredNetwork: [result.data.network] || '',
             contractName: result.data.contractName || '',
@@ -272,7 +275,7 @@ class App extends Component {
     this.setState({ methodData: newMethodData });
     // console.log(JSON.stringify(this.state.methodData));
   };
-  handleGenerateDapp = () => {
+  generateDapp = () => {
     const {
       contractName,
       contractAddress,
@@ -312,6 +315,85 @@ class App extends Component {
       })
       .then(res => {});
   };
+  generateSecureDapp = async () => {
+    // const {
+    //   contractName,
+    //   contractAddress,
+    //   abiRaw,
+    //   requiredNetwork,
+    //   account,
+    //   ensSubnode,
+    //   ensFee,
+    //   ensRegistryABI,
+    //   ensRegistryAddress
+    // } = this.state;
+    // const displayLoading = (
+    //   <div>
+    //     <Icon.Group size="huge">
+    //       <Icon loading size="large" name="circle notch" />
+    //       <Icon name="code" />
+    //     </Icon.Group>
+    //     <Header as="h2">
+    //       Registering "{ensSubnode}.oneclickdapp.eth"
+    //       <br />
+    //       Uploading raw HTML to IPFS
+    //       <br />
+    //       Updating resolver to IPFS content hash
+    //       <Header.Subheader>This can take up to 30 seconds...</Header.Subheader>
+    //     </Header>
+    //     <Message
+    //       attached="top"
+    //       error
+    //       header="Oops!"
+    //       hide={!this.state.errorMessage}
+    //       content={this.state.errorMessage}
+    //     />
+    //     <Image centered src={chiselProcess} size="huge" />
+    //   </div>
+    // );
+    // this.setState({
+    //   displayLoading
+    // });
+    // console.log('Generating secure dApp...');
+    //
+    // // 1. Register ENS subnode
+    // if (ensRegistryABI && typeof window.web3 !== "undefined") {
+    //     var ens = new ENS(window.web3.currentProvider);
+    //     ens.setSubnodeOwner(`${ensSubnode}.interface.eth`, account)
+    //       // 2. Compile and upload raw HTML to IPFS
+    //       const ipfsHash="success"
+    //
+    //       // 3. Update resolver with IPFS content hash
+    //       // Generate the node byte32
+    //       var node = '0x0000000000000000000000000000000000000000000000000000000000000000';
+    //       if (ensSubnode !== '') {
+    //           var labels =`${ensSubnode}.interface.eth`.split(".");
+    //           for(var i = labels.length - 1; i >= 0; i--) {
+    //               node = web3.sha3(node + web3.sha3(labels[i]).slice(2), {encoding: 'hex'});
+    //           }
+    //       }
+    //       const resultNode = node.toString()
+    //       // Modify content hash according to EIP 1557
+    //
+    //       // Submit to Public Resolver
+    //       const publicResolver = new web3.eth.Contract(
+    //         publicResolverABI,
+    //         publicResolverAddress
+    //       );
+    //       try {
+    //         await publicResolver.methods.setContenthash(resultNode, ipfsHash).send({
+    //           from: account
+    //         });
+    //       } catch (err) {
+    //         this.setState({ errorMessage: err.message });
+    //       }
+    //
+    //   } else {
+    //     console.log("errror metamask is not running");
+    //   }
+    //
+    // }
+  };
   // send() methods alter the contract state, and require gas.
   handleSubmitSend = (e, { name }) => {
     console.log("Performing function 'send()'...");
@@ -327,18 +409,21 @@ class App extends Component {
       console.log('method submitted' + JSON.stringify(method));
       // Generate the contract object
       // TODO instead use the contract instance created during submitDapp()
-      const myContract = new web3.eth.Contract(
-        JSON.parse(abi),
-        contractAddress
-      );
       try {
-        myContract.methods[method.name](...method.inputs).send({
-          from: account,
-          value: web3.utils.toWei(method.value || '0', 'ether')
-        });
+        const myContract = new web3.eth.Contract(
+          JSON.parse(abi),
+          contractAddress
+        );
+        myContract.methods[method.name](...method.inputs)
+          .send({
+            from: account,
+            value: web3.utils.toWei(method.value || '0', 'ether')
+          })
+          .catch(err => {
+            this.setState({ errorMessageView: err.message });
+          });
       } catch (err) {
-        console.log(err.message);
-        this.setState({ errorMessage: err.message });
+        this.setState({ errorMessageView: err.message });
       }
     }
   };
@@ -356,8 +441,11 @@ class App extends Component {
     let inputs = method.inputs || []; // return an empty array if no inputs exist
     // Generate the contract object
     // TODO instead use the contract instance created during submitDapp()
-    const myContract = new web3.eth.Contract(JSON.parse(abi), contractAddress);
     try {
+      const myContract = new web3.eth.Contract(
+        JSON.parse(abi),
+        contractAddress
+      );
       // using "..." to destructure inputs[]
       myContract.methods[name](...inputs)
         .call({
@@ -371,6 +459,9 @@ class App extends Component {
             );
           } else newMethodData[methodIndex].outputs[0] = response;
           this.setState({ methodData: newMethodData });
+        })
+        .catch(err => {
+          this.setState({ errorMessageView: err.message });
         });
     } catch (err) {
       this.setState({ errorMessageView: err.message });
@@ -694,7 +785,7 @@ class App extends Component {
                   size="huge"
                   icon="lightning"
                   color="green"
-                  onClick={this.handleGenerateDapp}
+                  onClick={this.generateDapp}
                   content="Create dApp"
                 />
               </Segment>
@@ -748,11 +839,11 @@ class App extends Component {
         <div>
           <Image size="small" centered src={tablet} />
           <Header as="h2" textAlign="center">
-            Create a permanent place for your dApp
+            Create a Secure & Permanent dApp
           </Header>
           <Form
             error={!!this.state.errorMessage}
-            onSubmit={() => this.handleGenerateSecureDapp}
+            onSubmit={() => this.generateSecureDapp()}
           >
             <Search
               fluid
@@ -767,28 +858,29 @@ class App extends Component {
               resultRenderer={resultRenderer}
               required={true}
             />
+            .oneclickdapp.eth
             <Form.Input
               label="Name your price (ETH)"
               required
+              units="eth"
               inline
               name="ensFee"
               onChange={this.handleChange}
               value={this.state.ensFee}
             />
-
             <Message
               attached="top"
               error
               header="Oops!"
               content={this.state.errorMessage}
             />
-            <Navigation direction="right" formSubmit={true} />
+            <Button size="huge" content="Create dApp" color="green" />
           </Form>
           <Navigation
             step={currentDappFormStep}
             direction="left"
             onUpdate={state => {
-              this.setState({ currentDappFormStep: 2 });
+              this.setState({ currentDappFormStep: 3 });
             }}
           />
         </div>
@@ -921,6 +1013,29 @@ class App extends Component {
         </div>
       );
     }
+    let displayErrorMessage = <div />;
+    if (this.state.errorMessageView) {
+      displayErrorMessage = (
+        <div
+          style={{
+            position: 'fixed',
+            zIndex: 10,
+            top: 60,
+            left: 60,
+            paddingRight: 60,
+            textAlign: 'left'
+          }}
+        >
+          <Message
+            size="large"
+            error
+            onDismiss={() => this.setState({ errorMessageView: false })}
+            header="Error:"
+            content={this.state.errorMessageView}
+          />
+        </div>
+      );
+    }
 
     return (
       <div>
@@ -982,6 +1097,7 @@ class App extends Component {
             {this.renderCalls()}
           </Grid.Column>
         </Grid>
+        {displayErrorMessage}
       </div>
     );
   }
@@ -1285,20 +1401,30 @@ class App extends Component {
       //     contractName={contractName}
       //   />
       // );
+
       // connectedDisplay.push(
       //   <ContractLoader
-      //     key="Contract Loader"
-      //     config={{ hide: false }}
-      //     web3={this.state.web3}
+      //     key="ContractLoader"
+      //     config={{ DEBUG: true }}
+      //     web3={web3}
       //     require={path => {
       //       return require(`${__dirname}/${path}`);
       //     }}
-      //     onReady={contracts => {
+      //     onReady={(contracts, customLoader) => {
       //       console.log('contracts loaded', contracts);
-      //       this.setState({ contracts: contracts });
+      //       this.setState(
+      //         {
+      //           customLoader: customLoader,
+      //           contracts: contracts
+      //         },
+      //         async () => {
+      //           console.log('Contracts Are Ready:', this.state.contracts);
+      //         }
+      //       );
       //     }}
       //   />
       // );
+
       // if (contracts) {
       //   connectedDisplay.push(
       //     <Events
@@ -1317,6 +1443,7 @@ class App extends Component {
       //   );
       // }
       connectedDisplay.push(
+        // Simple UI tweak for TransactionsCustom
         <TransactionsCustom
           key="Transactions"
           config={{ DEBUG: false }}
