@@ -7,6 +7,7 @@ import {
   Menu,
   Segment,
   Header,
+  Divider,
   Icon,
   Button,
   Progress,
@@ -452,11 +453,13 @@ class App extends Component {
           from: this.state.account
         })
         .then(response => {
-          if (typeof response === 'object') {
-            Object.entries(response).forEach(
-              ([key, value]) =>
-                (newMethodData[methodIndex].outputs[key] = value)
-            );
+          console.log('pass bool check' + typeof response);
+          if (typeof response === 'boolean') {
+            newMethodData[methodIndex].outputs[0] = response.toString();
+          } else if (typeof response === 'object') {
+            Object.entries(response).forEach(([key, value]) => {
+              newMethodData[methodIndex].outputs[key] = value.toString();
+            });
           } else newMethodData[methodIndex].outputs[0] = response;
           this.setState({ methodData: newMethodData });
         })
@@ -889,9 +892,9 @@ class App extends Component {
 
     return (
       <div>
+        <Divider hidden />
         <Container>
           <Progress
-            text="step"
             value={currentDappFormStep}
             total="3"
             progress="ratio"
@@ -1039,8 +1042,8 @@ class App extends Component {
 
     return (
       <div>
-        <Segment textAlign="center">
-          <h2>Viewing dApp "{this.state.contractName}"</h2>
+        <Segment fluid inverted textAlign="center">
+          <h2>dApp: "{this.state.contractName}"</h2>
           <Grid stackable columns={2}>
             <Grid.Column textAlign="center">
               Network: {this.state.requiredNetwork}
@@ -1081,22 +1084,25 @@ class App extends Component {
             </Grid.Column>
           </Grid>
         </Segment>
-        <Grid stackable columns={2}>
-          <Grid.Column>
-            <Header>
-              Write{' '}
-              <Header.Subheader>(must pay transaction fee)</Header.Subheader>
-            </Header>
-            {this.renderSends()}
-          </Grid.Column>
-          <Grid.Column>
-            <Header>
-              Read
-              <Header.Subheader>(free)</Header.Subheader>
-            </Header>
-            {this.renderCalls()}
-          </Grid.Column>
-        </Grid>
+        <Divider hidden />
+        <Container>
+          <Grid stackable columns={2}>
+            <Grid.Column>
+              <Header>
+                Write functions
+                <Header.Subheader>(must pay transaction fee)</Header.Subheader>
+              </Header>
+              {this.renderSends()}
+            </Grid.Column>
+            <Grid.Column>
+              <Header>
+                Read functions
+                <Header.Subheader>(free)</Header.Subheader>
+              </Header>
+              {this.renderCalls()}
+            </Grid.Column>
+          </Grid>
+        </Container>
         {displayErrorMessage}
       </div>
     );
@@ -1315,6 +1321,7 @@ class App extends Component {
             method.inputs.forEach((input, j) => {
               methodInputs.push(
                 <Form.Input
+                  required
                   name={method.name}
                   inputindex={j}
                   key={j}
@@ -1329,10 +1336,10 @@ class App extends Component {
             method.outputs.forEach((output, j) => {
               const outputData = methodData[i].outputs[j];
               methodOutputs.push(
-                <p key={j}>
-                  {`${output.name || '(unnamed)'}
-                ${output.type}: ${outputData || ''}`}
-                </p>
+                <Container key={j}>
+                  {output.name || '(unnamed)'} <i>{output.type}</i>:
+                  <b>{outputData || ''}</b>
+                </Container>
               );
             });
             forms.push(
@@ -1475,7 +1482,7 @@ class App extends Component {
             metatxAccountGenerator: false,
             hide: displayDappForm,
             boxStyle: {
-              paddingTop: 8
+              paddingTop: 5
             },
             textStyle: {
               color: '#e5e5e5'
@@ -1483,6 +1490,10 @@ class App extends Component {
             warningStyle: {
               fontSize: 20,
               color: '#d31717'
+            },
+            blockieStyle: {
+              size: 5,
+              top: 4
             }
           }}
           metatx={METATX}
@@ -1543,11 +1554,10 @@ class App extends Component {
             <Menu.Menu position="right">{dapparatus}</Menu.Menu>
           </Container>
         </Menu>
-
-        <Container style={{ marginTop: '5em' }}>
-          {mainDisplay}
-          {connectedDisplay}
-        </Container>
+        <Divider />
+        <Divider />
+        {mainDisplay}
+        {connectedDisplay}
       </div>
     );
   }

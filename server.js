@@ -14,7 +14,7 @@ var { Contract } = require('./models/contract');
 var { User } = require('./models/user');
 
 var mnGen = require('mngen'); // Random word generator
-// process.env.NODE_ENV === 'production'
+process.env.NODE_ENV === 'production';
 var app = express();
 app.set('port', process.env.PORT || 3001);
 // Express only serves static assets in production
@@ -175,26 +175,33 @@ app.get('/user/:creatorAddress', (req, res) => {
   console.log(' ');
   console.log('################## GET  #####################');
   console.log(`Fetching user saved contracts: ${creatorAddress}`);
-
-  User.findOne({ creatorAddress })
-    .then(user => {
-      mnemonics = user.savedDapps;
-      if (mnemonics !== undefined && mnemonics.length > 0) {
-        Contract.find({ mnemonic: { $in: mnemonics } })
-          .sort({ _id: -1 })
-          .then(dapps => {
-            // createdAt: dapp._id.getTimestamp();
-            res.send(dapps);
-          });
-      } else {
-        res.status(404).send(`No contracts found for  ${creatorAddress}`);
-        console.log('No contracts exist');
+  try {
+    User.findOneAndUpdate(
+      { creatorAddress },
+      { $set: { creatorAddress } },
+      {
+        upsert: true,
+        new: true
+      },
+      (err, user) => {
+        if (err) console.log(err);
+        else if (user.savedDapps !== undefined && user.savedDapps.length > 0) {
+          mnemonics = user.savedDapps;
+          Contract.find({ mnemonic: { $in: mnemonics } })
+            .sort({ _id: -1 })
+            .then(dapps => {
+              res.send(dapps);
+            });
+        } else {
+          res.status(404).send(`No user saved dApps found  ${creatorAddress}`);
+          console.log('No user saved dApps found');
+        }
       }
-    })
-    .catch(function(err) {
-      res.status(404).send(`User not found ` + creatorAddress);
-      console.log('User not found');
-    });
+    );
+  } catch (err) {
+    res.status(404).send(`User not found ` + creatorAddress);
+    console.log('No user saved dApps found');
+  }
 });
 
 // Return the front-end for all other GET calls
