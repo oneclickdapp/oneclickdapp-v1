@@ -105,16 +105,22 @@ class App extends Component {
     };
   }
   componentDidMount = async () => {
-    this.getURLContract();
-    this.getRecentPublicContracts();
-    this.getExternalContracts();
+    if (!this.getURLContract()) {
+      this.getRecentPublicContracts();
+      this.getExternalContracts();
+      this.getExistingSubnodes();
+    }
   };
   componentDidUpdate() {
-    if (!this.state.userHasBeenLoaded && this.state.account) {
+    if (
+      !this.state.userHasBeenLoaded &&
+      this.state.account &&
+      this.state.displayDappForm
+    ) {
       this.getUserSavedContracts();
     }
   }
-  getURLContract =  () => {
+  getURLContract = () => {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 1) {
       const loading = (
@@ -152,8 +158,10 @@ class App extends Component {
         .catch(function(err) {
           console.log(err);
         });
+      return true;
     } else {
-      this.handleChangeABI({}, { value: this.state.abiRaw });
+      return false;
+      // this.handleChangeABI({}, { value: this.state.abiRaw });
     }
   };
   getRecentPublicContracts = () => {
@@ -170,15 +178,22 @@ class App extends Component {
     axios
       .get(`/user/${account}`)
       .then(response => {
+        console.log(response);
+        if (response.data) {
+          this.setState({
+            userSavedContracts: response.data,
+            userHasBeenLoaded: true
+          });
+        } else console.log(response);
+      })
+      .catch(err => {
         this.setState({
-          userSavedContracts: response.data,
           userHasBeenLoaded: true
         });
-      })
-      .catch
-      // err =>
-      // console.log(err)
-      ();
+        console.log(
+          'getUserSavedContracts: User not found or no saved contracts exist'
+        );
+      });
   };
   getExternalContracts = () => {
     axios
@@ -389,19 +404,12 @@ class App extends Component {
     this.setState({ isLoading: true, ensSubnode: value });
     setTimeout(() => {
       if (value.length < 1) return this.resetComponent();
-      const re = new RegExp(_.escapeRegExp(value), 'i');
-      const isMatch = result => re.test(result.title);
-      this.getExistingSubnodes();
-      console.log(
-        'existing subnodes:' + JSON.stringify(this.state.externalContracts)
-      );
-      console.log(
-        'results' +
-          JSON.stringify(_.filter(this.state.externalContracts, isMatch))
-      );
+      const isExactMatch = result => {
+        return value === result.title;
+      };
       this.setState({
         isLoading: false,
-        results: _.filter(this.state.externalContracts, isMatch)
+        results: _.filter(this.state.existingSubnodes, isExactMatch)
       });
     }, 300);
   };
@@ -729,7 +737,7 @@ class App extends Component {
     } else if (currentDappFormStep === 4) {
       const resultRenderer = ({ title }) => [
         <div key={title}>
-          <Header>{title}</Header>
+          <Header>{title} is not available</Header>
         </div>
       ];
       resultRenderer.propTypes = {
@@ -738,23 +746,16 @@ class App extends Component {
 
       formDisplay = (
         <div>
-          <Image size="small" centered src={castle} />
+          <Image size="small" centered src={tablet} />
           <Header as="h2" textAlign="center">
-            Name your castle
+            Create a permanent place for your dApp
           </Header>
           <Form
             error={!!this.state.errorMessage}
-            onSubmit={() =>
-              this.setState({
-                currentDappFormStep: 3
-              })
-            }
+            onSubmit={() => this.handleGenerateSecureDapp}
           >
             <Search
               fluid
-              // label=".oneclickdapp.eth"
-              // labelPosition="right"
-              inline
               noResultsMessage="This name is available!"
               loading={this.state.isLoading}
               onSearchChange={_.debounce(this.handleEnsSearchChange, 500, {
@@ -764,7 +765,6 @@ class App extends Component {
               value={this.state.ensSubnode}
               results={this.state.results}
               resultRenderer={resultRenderer}
-              // onResultSelect={this.handleResultSelect}
               required={true}
             />
             <Form.Input
@@ -775,7 +775,7 @@ class App extends Component {
               onChange={this.handleChange}
               value={this.state.ensFee}
             />
-            {this.state.results}
+
             <Message
               attached="top"
               error

@@ -25,10 +25,12 @@ app.post('/contracts', (req, res) => {
   const abi = req.body.abi;
   const contractAddress = req.body.contractAddress;
   const network = req.body.network;
-  const creatorAddress = req.body.creatorAddress.toLowerCase();
+  let creatorAddress = 'creatorAddress not provided';
+  if (req.body.creatorAddress) {
+    creatorAddress = req.body.creatorAddress.toLowerCase();
+  }
   // Generate the mnemonic word for the URL
   const mnemonic = mnGen.word(2);
-  const currentTime = Date.now();
 
   console.log(' ');
   console.log('################## POST #####################');
@@ -36,7 +38,6 @@ app.post('/contracts', (req, res) => {
     `Name: ${contractName}, network: ${network}, address: ${contractAddress}`
   );
   console.log(`Creator address: ${creatorAddress}`);
-  console.log(`Current time: ${currentTime}`);
   console.log(`URL: www.oneclickdapp.com/${mnemonic}`);
   var contract = new Contract({
     contractName: contractName,
@@ -44,7 +45,6 @@ app.post('/contracts', (req, res) => {
     contractAddress: contractAddress,
     network: network,
     mnemonic: mnemonic,
-    createdAt: currentTime,
     creatorAddress
   });
 
@@ -71,6 +71,9 @@ app.post('/contracts', (req, res) => {
 });
 
 app.get('/contracts/recentContracts', (req, res) => {
+  console.log(' ');
+  console.log('################## GET  #####################');
+  console.log(`Fetching recent contracts`);
   Contract.find()
     .sort({ _id: -1 })
     .limit(50)
@@ -91,7 +94,7 @@ app.get('/contracts/recentContracts', (req, res) => {
       });
     })
     .catch(function(err) {
-      res.status(400).send(`Recent contracts not found...`);
+      res.status(404).send(`Recent contracts not found...`);
       console.log(err.err);
     });
 });
@@ -99,7 +102,7 @@ app.get('/contracts/recentContracts', (req, res) => {
 app.get('/contracts/externalContracts', (req, res) => {
   console.log(' ');
   console.log('################## GET  #####################');
-  console.log(`Retrieving external contracts`);
+  console.log(`Fetching external contracts`);
   let externalContracts = [];
   const path = './externalContracts/myEtherWallet/src/contracts/eth';
   fs.readdirSync(path).forEach(file => {
@@ -117,7 +120,7 @@ app.get('/contracts/:mnemonic', (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
   console.log(' ');
   console.log('################## GET  #####################');
-  console.log(`Retrieving contract for mnemonic: ${mnemonic}`);
+  console.log(`Fetching contract for mnemonic: ${mnemonic}`);
 
   Contract.find({ mnemonic: mnemonic })
     .then(contractArray => {
@@ -136,8 +139,7 @@ app.get('/contracts/:mnemonic', (req, res) => {
         let metaData = {};
         registry
           .get(contractAddress)
-          .then(res => {
-            metaData = res;
+          .then(metaData => {
             res.send({
               contractName,
               abi,
@@ -148,23 +150,22 @@ app.get('/contracts/:mnemonic', (req, res) => {
             });
           })
           .catch(e => {
-            console.error(e);
+            console.error('Metadata not accessible');
             res.send({
               contractName,
               abi,
               contractAddress,
               network,
               createdAt,
-              metaData
+              metaData: ''
             });
           });
       } else {
-        res.status(400).send(`Contract not found: ${mnemonic}`);
-        return;
+        res.status(404).send(`Contract not found: ${mnemonic}`);
       }
     })
     .catch(function(err) {
-      res.status(400).send(`Contract not found: ${mnemonic}`);
+      res.status(404).send(`Contract not found: ${mnemonic}`);
       console.log(err.err);
     });
 });
@@ -173,7 +174,7 @@ app.get('/user/:creatorAddress', (req, res) => {
   var creatorAddress = req.params.creatorAddress.toLowerCase();
   console.log(' ');
   console.log('################## GET  #####################');
-  console.log(`Retrieving contracts for user address: ${creatorAddress}`);
+  console.log(`Fetching user saved contracts: ${creatorAddress}`);
 
   User.findOne({ creatorAddress })
     .then(user => {
@@ -186,12 +187,13 @@ app.get('/user/:creatorAddress', (req, res) => {
             res.send(dapps);
           });
       } else {
-        res.status(400).send(`User not found: ${creatorAddress}`);
+        res.status(404).send(`No contracts found for  ${creatorAddress}`);
+        console.log('No contracts exist');
       }
     })
     .catch(function(err) {
-      res.status(400).send(`User not found`);
-      console.log(err.err);
+      res.status(404).send(`User not found ` + creatorAddress);
+      console.log('User not found');
     });
 });
 
