@@ -13,10 +13,18 @@ import {
   Progress,
   Popup,
   Container,
+  Modal,
+  Reveal,
   Table,
   Image,
+  List,
   Transition,
   Search,
+  Responsive,
+  Visibility,
+  Accordion,
+  Card,
+  Sidebar,
   Dropdown
 } from 'semantic-ui-react';
 import {
@@ -67,6 +75,7 @@ const ethereumSmall = require('./assets/ethereum-small.png');
 const clock = require('./assets/clock.png');
 const github = require(`./assets/github.png`);
 const question = require(`./assets/question.png`);
+const backgroundImage = require(`./assets/backgroundImage.png`);
 
 class App extends Component {
   constructor(props) {
@@ -74,19 +83,20 @@ class App extends Component {
     this.state = {
       abi: '',
       abiRaw: '',
-      requiredNetwork: '',
+      network: '',
       contractAddress: '',
-      contractName: '',
-      errorMessage: '',
-      errorMessageView: '',
+      getDappData: '',
+      errorMessage: false,
       loading: false,
       methodData: [],
       mnemonic: '',
       metaData: {},
+      dappData: false,
       recentContracts: {},
       userSavedContracts: {},
       externalContracts: [],
       userHasBeenLoaded: false,
+      activeIndex: [],
       // ENS
       ensSubnode: 'myDapp2',
       ensFee: 0.01,
@@ -108,7 +118,7 @@ class App extends Component {
     };
   }
   componentDidMount = async () => {
-    if (!this.getURLContract()) {
+    if (!this.getDappData()) {
       this.getRecentPublicContracts();
       this.getExternalContracts();
       this.getExistingSubnodes();
@@ -123,21 +133,12 @@ class App extends Component {
       this.getUserSavedContracts();
     }
   }
-  getURLContract = () => {
+
+  getDappData = () => {
     const mnemonic = window.location.pathname;
     if (mnemonic.length > 1) {
-      const loading = (
-        <div>
-          <Icon.Group size="huge">
-            <Icon loading size="large" name="circle notch" />
-            <Icon name="download" />
-          </Icon.Group>
-          <Header as="h2">Loading...</Header>
-          <Image centered src={tablet} />
-        </div>
-      );
+      this.showLoading('downloading');
       this.setState({
-        displayLoading: loading,
         requestAccessMetamask: true
       });
       axios
@@ -149,14 +150,32 @@ class App extends Component {
           );
           document.title = `oneclickdapp: ${result.data.contractName}`;
           this.setState({
-            requiredNetwork: [result.data.network] || '',
-            contractName: result.data.contractName || '',
+            network: [result.data.network] || '',
+            dappName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
             metaData: result.data.metaData || '',
+            premiumDappData: result.data.premiumDapp || false,
             mnemonic: mnemonic,
             displayDappForm: false,
             displayLoading: false,
-            enableDapparatus: true
+            enableDapparatus: true,
+            dappData: {
+              premium: result.data.premium || false,
+              dappName: result.data.contractName || '',
+              description: result.data.description || '',
+              mnemonic: mnemonic,
+              contactInfo: result.data.contactInfo || '',
+              colorLight: result.data.colorLight || '',
+              colorDark: result.data.colorDark || '',
+              instructions: result.data.instructions || '',
+              network: [result.data.network] || [],
+              contractAddress: result.data.contractAddress || '',
+              metaData: result.data.metaData || '',
+              functions: result.data.functions || '',
+              favicon: result.data.favicon || '',
+              icon: result.data.icon || '',
+              backgroundImage: result.data.backgroundImage
+            }
           });
         })
         .catch(function(err) {
@@ -213,99 +232,18 @@ class App extends Component {
     const values = [{ title: 'mydapp' }, { title: 'cooldapp' }];
     this.setState({ existingSubnodes: values });
   };
-  handleChange = (e, { name, value }) => {
-    this.setState({ [name]: value });
-  };
-  handleInput(e) {
-    let update = {};
-    update[e.target.name] = e.target.value;
-    this.setState(update);
-  }
-  handleChangeABI = (e, { value }) => {
-    this.setState({ abi: '', abiRaw: value, loading: true, errorMessage: '' });
-    const { contractAddress } = this.state;
-    if (value) {
-      // Don't run unless there is some text present
-      // Check for proper formatting and create a new contract instance
-      try {
-        if (value.includes('pragma')) {
-          // Check if it is a smart contract
-          // console.log('input is a smart contract');
-          // // var output = solc.compile(value);
-          // console.log(JSON.stringify(output));
-          // output.contracts['splitter'].interface;
-          this.setState({ solidity: value });
-        } else {
-          // Parse the ABI normally and apply fixes as needed
-          const abiObject = JSON.parse(value);
-          // Name any unnammed outputs (fix for ABI/web3 issue on mainnet)
-          abiObject.forEach((method, i) => {
-            if (method.stateMutability === 'view') {
-              method.outputs.forEach((output, j) => {
-                if (!abiObject[i].outputs[j].name) {
-                  abiObject[i].outputs[j].name = '(unnamed' + (j + 1) + ')';
-                }
-              });
-            }
-          });
-          const myContract = new web3.eth.Contract(abiObject, contractAddress);
-          // Save the formatted abi for use in renderInterface()
-          this.setState({
-            abi: JSON.stringify(myContract.options.jsonInterface)
-          });
-          abiObject.forEach(method => this.createMethodData(method.name));
-        }
-      } catch (err) {
-        this.setState({
-          errorMessage: err.message
-        });
-        return;
-      }
-    }
-    this.setState({ loading: false });
-  };
-  // Takes inputs from the user and stores them to JSON object methodArguments
-  handleMethodDataChange = (e, { name, value, inputindex, payable }) => {
-    let newMethodData = this.state.methodData;
-    const methodIndex = newMethodData.findIndex(method => method.name === name);
-    if (inputindex === -1) {
-      newMethodData[methodIndex].value = value;
-    } else {
-      newMethodData[methodIndex].inputs[inputindex] = value;
-    }
-    this.setState({ methodData: newMethodData });
-    // console.log(JSON.stringify(this.state.methodData));
-  };
-  generateDapp = () => {
-    const {
-      contractName,
-      contractAddress,
-      abiRaw,
-      requiredNetwork,
-      account
-    } = this.state;
-    const displayLoading = (
-      <div>
-        <Icon.Group size="huge">
-          <Icon loading size="large" name="circle notch" />
-          <Icon name="code" />
-        </Icon.Group>
-        <Header as="h2">Building your dApp...</Header>
-        <Image centered src={chiselProcess} size="huge" />
-      </div>
-    );
-    this.setState({
-      displayLoading
-    });
 
+  generateDapp = () => {
+    const { dappName, contractAddress, abiRaw, network, account } = this.state;
+    this.showLoading('creating');
     const abi = JSON.parse(abiRaw);
     console.log('Generating unique URL...' + account);
     axios
       .post(`/contracts`, {
-        contractName,
+        dappName,
         contractAddress,
         abi,
-        network: requiredNetwork,
+        network: network,
         creatorAddress: account
       })
       .then(res => {
@@ -318,10 +256,10 @@ class App extends Component {
   };
   generateSecureDapp = async () => {
     // const {
-    //   contractName,
+    //   dappName,
     //   contractAddress,
     //   abiRaw,
-    //   requiredNetwork,
+    //   network,
     //   account,
     //   ensSubnode,
     //   ensFee,
@@ -395,95 +333,102 @@ class App extends Component {
     //
     // }
   };
-  // send() methods alter the contract state, and require gas.
-  handleSubmitSend = (e, { name }) => {
-    console.log("Performing function 'send()'...");
-    this.setState({ errorMessage: '' });
-    const { methodData, abi, contractAddress, account } = this.state;
-
-    // note: only gets first method. There could be more!
-    // TODO fix this ^
-    const method = methodData.find(method => method.name === name);
-    if (!method) {
-      this.setState({ errorMessage: 'You must enter some values' });
-    } else {
-      console.log('method submitted' + JSON.stringify(method));
-      // Generate the contract object
-      // TODO instead use the contract instance created during submitDapp()
+  handleChange = (e, { name, value }) => {
+    this.setState({ [name]: value });
+  };
+  handleInput(e) {
+    let update = {};
+    update[e.target.name] = e.target.value;
+    this.setState(update);
+  }
+  handleClick = (e, titleProps) => {
+    // Manages which premium feature is active
+    const { index } = titleProps;
+    const { activeIndex } = this.state;
+    let newIndex = activeIndex;
+    if (activeIndex && activeIndex.includes(index)) {
+      newIndex.splice(activeIndex.indexOf(index), 1);
+    } else newIndex.push(index);
+    this.setState({ activeIndex: newIndex });
+  };
+  handleChangeABI = (e, { value }) => {
+    this.setState({ abi: '', abiRaw: value, loading: true, errorMessage: '' });
+    const { contractAddress } = this.state;
+    if (value) {
+      // Don't run unless there is some text present
+      // Check for proper formatting and create a new contract instance
       try {
-        const myContract = new web3.eth.Contract(
-          JSON.parse(abi),
-          contractAddress
-        );
-        myContract.methods[method.name](...method.inputs)
-          .send({
-            from: account,
-            value: web3.utils.toWei(method.value || '0', 'ether')
-          })
-          .catch(err => {
-            this.setState({ errorMessageView: err.message });
+        if (value.includes('pragma')) {
+          // Check if it is a smart contract
+          // console.log('input is a smart contract');
+          // // var output = solc.compile(value);
+          // console.log(JSON.stringify(output));
+          // output.contracts['splitter'].interface;
+          this.setState({ solidity: value });
+        } else {
+          // Parse the ABI normally and apply fixes as needed
+          const abiObject = JSON.parse(value);
+          // Name any unnammed outputs (fix for ABI/web3 issue on mainnet)
+          abiObject.forEach((method, i) => {
+            if (method.stateMutability === 'view') {
+              method.outputs.forEach((output, j) => {
+                if (!abiObject[i].outputs[j].name) {
+                  abiObject[i].outputs[j].name = '(unnamed' + (j + 1) + ')';
+                }
+              });
+            }
           });
+          const myContract = new web3.eth.Contract(abiObject, contractAddress);
+          // Save the formatted abi for use in renderInterface()
+          this.setState({
+            abi: JSON.stringify(myContract.options.jsonInterface)
+          });
+          abiObject.forEach(method => this.createMethodData(method.name));
+        }
       } catch (err) {
-        this.setState({ errorMessageView: err.message });
+        this.setState({
+          errorMessage: err.message
+        });
+        return;
       }
     }
+    this.setState({ loading: false });
   };
-  // call() methods do not alter the contract state. No gas needed.
-  handleSubmitCall = (e, { name }) => {
-    const { abi, contractAddress, methodData } = this.state;
-    console.log("Performing function 'call()'...");
-    let newMethodData = methodData;
-    this.setState({ errorMessage: '' });
-    // note: only gets first method. There could be more with identical name
-    // TODO fix this ^
-    const methodIndex = methodData.findIndex(method => method.name === name);
-    const method = methodData[methodIndex];
-    console.log('method submitted' + JSON.stringify(method));
-    let inputs = method.inputs || []; // return an empty array if no inputs exist
-    // Generate the contract object
-    // TODO instead use the contract instance created during submitDapp()
-    try {
-      const myContract = new web3.eth.Contract(
-        JSON.parse(abi),
-        contractAddress
-      );
-      // using "..." to destructure inputs[]
-      myContract.methods[name](...inputs)
-        .call({
-          from: this.state.account
-        })
-        .then(response => {
-          console.log('pass bool check' + typeof response);
-          if (typeof response === 'boolean') {
-            newMethodData[methodIndex].outputs[0] = response.toString();
-          } else if (typeof response === 'object') {
-            Object.entries(response).forEach(([key, value]) => {
-              newMethodData[methodIndex].outputs[key] = value.toString();
-            });
-          } else newMethodData[methodIndex].outputs[0] = response;
-          this.setState({ methodData: newMethodData });
-        })
-        .catch(err => {
-          this.setState({ errorMessageView: err.message });
-        });
-    } catch (err) {
-      this.setState({ errorMessageView: err.message });
+  handleMethodDataChange = (e, { name, value, inputindex, payable }) => {
+    // Takes inputs from the user and stores them to JSON object methodArguments
+    let newMethodData = this.state.methodData;
+    const methodIndex = newMethodData.findIndex(method => method.name === name);
+    if (inputindex === -1) {
+      newMethodData[methodIndex].value = value;
+    } else {
+      newMethodData[methodIndex].inputs[inputindex] = value;
     }
+    this.setState({ methodData: newMethodData, errorMessage: false });
+    // console.log(JSON.stringify(this.state.methodData));
   };
-  resetComponent = () =>
-    this.setState({ isLoading: false, results: [], contractName: '' });
+  createMethodData = name => {
+    var newMethodData = this.state.methodData;
+    // Check whether the method exists in the arguments list
+    var methodExists = newMethodData.find(method => method.name === name);
+    // Make a new entry if the method doesn't exist
+    if (!methodExists) {
+      newMethodData.push({ name: name, inputs: [], outputs: [] });
+      this.setState({ methodData: newMethodData });
+    }
+    return newMethodData;
+  };
   handleResultSelect = (e, { result }) => {
     const name = `${result.title} (clone)`;
     this.setState({
-      contractName: name,
-      requiredNetwork: 'Mainnet',
+      dappName: name,
+      network: 'Mainnet',
       contractAddress: result.address,
       abiRaw: JSON.stringify(result.abi),
       currentDappFormStep: 2
     });
   };
   handleSearchChange = (e, { value }) => {
-    this.setState({ isLoading: true, contractName: value });
+    this.setState({ isLoading: true, dappName: value });
     setTimeout(() => {
       if (value.length < 1) return this.resetComponent();
       const re = new RegExp(_.escapeRegExp(value), 'i');
@@ -507,101 +452,321 @@ class App extends Component {
       });
     }, 300);
   };
-  createMethodData = name => {
-    var newMethodData = this.state.methodData;
-    // Check whether the method exists in the arguments list
-    var methodExists = newMethodData.find(method => method.name === name);
-    // Make a new entry if the method doesn't exist
-    if (!methodExists) {
-      newMethodData.push({ name: name, inputs: [], outputs: [] });
-      this.setState({ methodData: newMethodData });
+  resetComponent = () =>
+    this.setState({ isLoading: false, results: [], dappName: '' });
+  handleSubmitSend = (e, { name }) => {
+    const { methodData, abi, contractAddress, account } = this.state;
+    // send() methods alter the contract state, and require gas.
+    console.log("Performing function 'send()'...");
+    this.setState({ errorMessage: '' });
+    let newMethodData = methodData;
+    const methodIndex = methodData.findIndex(method => method.name === name);
+
+    // note: only gets first method. There could be more!
+    // TODO fix this ^
+    const method = methodData.find(method => method.name === name);
+    if (!method) {
+      this.setState({ errorMessage: 'You must enter some values' });
+    } else {
+      console.log('method submitted' + JSON.stringify(method));
+      // Generate the contract object
+      // TODO instead use the contract instance created during submitDapp()
+      try {
+        const myContract = new web3.eth.Contract(
+          JSON.parse(abi),
+          contractAddress
+        );
+        myContract.methods[method.name](...method.inputs)
+          .send({
+            from: account,
+            value: web3.utils.toWei(method.value || '0', 'ether')
+          })
+          .then(response => {
+            console.log('pass bool check' + typeof response);
+            if (typeof response === 'boolean') {
+              newMethodData[methodIndex].outputs[0] = response.toString();
+            } else if (typeof response === 'object') {
+              Object.entries(response).forEach(([key, value]) => {
+                newMethodData[methodIndex].outputs[key] = value.toString();
+              });
+            } else newMethodData[methodIndex].outputs[0] = response;
+            this.setState({ methodData: newMethodData });
+          })
+          .catch(err => {
+            this.setState({ errorMessage: err.message });
+          });
+      } catch (err) {
+        this.setState({ errorMessage: err.message });
+      }
     }
-    return newMethodData;
   };
+  handleSubmitCall = (e, { name }) => {
+    // call() methods do not alter the contract state. No gas needed.
+    const { abi, contractAddress, methodData } = this.state;
+    console.log("Performing function 'call()'...");
+    let newMethodData = methodData;
+    this.setState({ errorMessage: '' });
+    // note: only gets first method. There could be more with identical name
+    // TODO fix this ^
+    const methodIndex = methodData.findIndex(method => method.name === name);
+    const method = methodData[methodIndex];
+    console.log('method submitted' + JSON.stringify(method));
+    let inputs = method.inputs || []; // return an empty array if no inputs exist
+    // Generate the contract object
+    // TODO instead use the contract instance created during submitDapp()
+    try {
+      const myContract = new web3.eth.Contract(
+        JSON.parse(abi),
+        contractAddress
+      );
+      // using "..." to destructure inputs[]
+      myContract.methods[name](...inputs)
+        .call({
+          from: this.state.account
+        })
+        .then(response => {
+          if (typeof response === 'boolean') {
+            newMethodData[methodIndex].outputs[0] = response.toString();
+          } else if (typeof response === 'object') {
+            Object.entries(response).forEach(([key, value]) => {
+              newMethodData[methodIndex].outputs[key] = value.toString();
+            });
+          } else newMethodData[methodIndex].outputs[0] = response;
+          this.setState({ methodData: newMethodData });
+        })
+        .catch(err => {
+          this.setState({ errorMessage: err.message });
+        });
+    } catch (err) {
+      this.setState({ errorMessage: err.message });
+    }
+  };
+
+  showErrorMessage = type => {
+    let message = <div />;
+    if (this.state.errorMessage) {
+      if (type === 'popup') {
+        message = (
+          <div
+            style={{
+              position: 'fixed',
+              zIndex: 10,
+              top: 60,
+              left: 60,
+              paddingRight: 60,
+              textAlign: 'left'
+            }}
+          >
+            <Message
+              size="large"
+              error
+              onDismiss={() => this.setState({ errorMessage: false })}
+              header="Error:"
+              content={this.state.errorMessage}
+            />
+          </div>
+        );
+      } else {
+        message = (
+          <Message
+            attached="top"
+            error
+            header="Oops!"
+            content={this.state.errorMessage}
+          />
+        );
+      }
+    }
+    return message;
+  };
+  showLoading = action => {
+    let loading = false;
+    if (action === 'downloading') {
+      loading = (
+        <div className="loadingDIV">
+          <Icon.Group size="huge">
+            <Icon loading size="large" name="circle notch" />
+            <Icon name="download" />
+          </Icon.Group>
+          <Header as="h2">Loading...</Header>
+          <Image centered src={tablet} />
+        </div>
+      );
+    } else if (action === 'creating') {
+      loading = (
+        <div className="loadingDIV">
+          <Icon.Group size="huge">
+            <Icon loading size="large" name="circle notch" />
+            <Icon name="code" />
+          </Icon.Group>
+          <Header as="h2">Building your dApp...</Header>
+          <Image centered src={chiselProcess} size="huge" />
+        </div>
+      );
+    }
+    this.setState({ displayLoading: loading });
+  };
+
+  renderFooter() {
+    const { dappData } = this.state;
+    let displayContactInfo;
+    if (dappData && dappData.premium) {
+      displayContactInfo = (
+        <Grid.Column width={3}>
+          <Header inverted as="h4" content={dappData.contactInfo.company} />
+          <List link inverted>
+            <List.Item as="a" href={dappData.contactInfo.website}>
+              Website
+            </List.Item>
+            <List.Item
+              as="a"
+              href={`mailto:${
+                dappData.contactInfo.email
+              }?subject=Question%20about%20"${
+                dappData.dappName
+              }"%20via%20OneClickDapp.com`}
+              target="_self"
+            >
+              Contact
+            </List.Item>
+          </List>
+        </Grid.Column>
+      );
+    }
+    return (
+      <div className="footer">
+        <Grid divided stackable textAlign="left">
+          <Grid.Row>
+            {displayContactInfo}
+            <Grid.Column width={3}>
+              <h4>One Click dApp</h4>
+              <List link>
+                <List.Item
+                  style={{ color: 'white' }}
+                  as="a"
+                  href="mailto:blockchainbuddha@gmail.com?subject=Question%20about%20OneClickdApp.com"
+                  target="_self"
+                >
+                  Contact Us
+                </List.Item>
+              </List>
+            </Grid.Column>
+            <Grid.Column width={7}>
+              <h4>Create a dApp in seconds</h4>
+              <p>
+                Turn your smart contract into a custom dApp in seconds, without
+                writing a single line of code.
+              </p>
+            </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>Copyright 2018 OneClickdApp</Grid.Row>
+        </Grid>
+      </div>
+    );
+  }
   renderDappForm() {
     const { currentDappFormStep, displayLoading } = this.state;
+    const errorMessage = this.showErrorMessage();
     let formDisplay = [];
+
     if (displayLoading) {
       formDisplay = displayLoading;
     } else if (currentDappFormStep < 1) {
       formDisplay = (
         <div>
-          <Grid stackable>
-            <Grid.Column width={7}>
-              <Image align="right" size="large" src={chelseaHello} />
-            </Grid.Column>
-            <Grid.Column textAlign="left" width={8}>
-              <Segment>
-                <Header textAlign="center">
-                  I'll help you chisel out a new dApp
-                </Header>
-                <ol>
-                  <li>
-                    Deploy your smart contract using{' '}
-                    <a
-                      href="http://remix.ethereum.org"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Remix
-                    </a>
-                    ,{' '}
-                    <a
-                      href="https://github.com/austintgriffith/clevis"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Clevis
-                    </a>
-                    , or{' '}
-                    <a
-                      href="https://truffleframework.com/tutorials/pet-shop"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Truffle.
-                    </a>
-                  </li>
-                  <li>
-                    Enter the
-                    <a
-                      href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {' '}
-                      ABI
-                    </a>
-                    , network, and a name.
-                  </li>
-                  <li>Choose a security level (high/low).</li>
-                </ol>
-                Voila, your very own dApp at a unique URL:
-                <Header textAlign="center">
-                  oneclickdapp.com/stone-tablet
-                </Header>
-                <br />
-                Bookmark and share with a friend!
-              </Segment>
-            </Grid.Column>
-            <Grid.Row>
-              <Grid.Column>
-                <Segment>
-                  <Image centered size="huge" src={instructions} />
-                </Segment>
+          <div className="homePageHeader">
+            <Grid stackable columns={2} verticalAlign="middle">
+              <Grid.Column textAlign="left">
+                <p style={{ fontSize: '4em' }}>Instant, Secure, Simple.</p>
+                <p style={{ fontSize: '1.5em' }}>
+                  Turn your smart contract into a customizable, easy-to-use
+                  dApp.
+                </p>
+                <Divider hidden />
+                <Grid.Column textAlign="center">
+                  <Button
+                    primary
+                    size="huge"
+                    content="Create a dApp for free"
+                    onClick={() => {
+                      this.setState({
+                        currentDappFormStep: 1,
+                        enableDapparatus: true
+                      });
+                    }}
+                  />
+                  <br />
+                  login using your wallet
+                </Grid.Column>
               </Grid.Column>
-            </Grid.Row>
-          </Grid>
-          <Navigation
-            step={currentDappFormStep}
-            direction="right"
-            onUpdate={state => {
-              this.setState({
-                currentDappFormStep: state.step,
-                enableDapparatus: true
-              });
-            }}
-          />
+              <Grid.Column>
+                <Image src={tablet} />
+              </Grid.Column>
+            </Grid>
+          </div>
+          <div className="homePageContent">
+            <Grid>
+              <Grid.Row>
+                <Grid.Column>
+                  <div style={{ paddingBottom: 30 }}>
+                    <Image centered size="huge" src={instructions} />
+                  </div>
+                </Grid.Column>
+              </Grid.Row>
+            </Grid>
+            <ol>
+              <li>
+                Deploy your smart contract using{' '}
+                <a
+                  href="http://remix.ethereum.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Remix
+                </a>
+                ,{' '}
+                <a
+                  href="https://github.com/austintgriffith/clevis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Clevis
+                </a>
+                , or{' '}
+                <a
+                  href="https://truffleframework.com/tutorials/pet-shop"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Truffle.
+                </a>
+              </li>
+              <li>
+                Enter the
+                <a
+                  href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {' '}
+                  ABI
+                </a>
+                , network, and a name.
+              </li>
+              <li>Choose a security level (high/low).</li>
+            </ol>
+            <Header>
+              <a
+                href="http://oneclickdapp.com/metal-gelatin"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                oneclickdapp.com/metal-gelatin
+              </a>
+            </Header>
+            <br />
+            Bookmark and share with a friend!
+          </div>
         </div>
       );
     } else if (currentDappFormStep === 1) {
@@ -617,216 +782,252 @@ class App extends Component {
       };
 
       formDisplay = (
-        <div>
-          <Image src={pen} size="small" centered />
-          <Header as="h2">
-            Create a new dApp
-            <Header.Subheader>
-              or clone an existing one <Image src={clone} size="mini" inline />
-            </Header.Subheader>
-          </Header>
-          <Form
-            error={!!this.state.errorMessage}
-            onSubmit={() => this.setState({ currentDappFormStep: 2 })}
-          >
-            <Search
-              fluid
-              size="large"
-              noResultsMessage="No results found"
-              noResultsDescription="'Enter' to create a new dApp!"
-              loading={this.state.isLoading}
-              onSearchChange={_.debounce(this.handleSearchChange, 500, {
-                leading: true
-              })}
-              placeholder="myDApp"
-              value={this.state.contractName}
-              results={this.state.results}
-              resultRenderer={resultRenderer}
-              onResultSelect={this.handleResultSelect}
-              required={true}
+        <Container>
+          <Container className="progressBar">
+            <Progress
+              value={0}
+              total="3"
+              progress="ratio"
+              color="teal"
+              size="medium"
             />
-            <Navigation direction="right" formSubmit={true} />
-          </Form>
-          <br />
-          <Grid columns={2} centered stackable>
-            <Grid.Column>
-              <Segment>{this.renderUserHistory()}</Segment>
-            </Grid.Column>
-            <Grid.Column>
-              <Segment>{this.renderGlobalHistory()}</Segment>
-            </Grid.Column>
-          </Grid>
-          <Navigation
-            step={currentDappFormStep}
-            direction="left"
-            onUpdate={state => {
-              this.setState({ currentDappFormStep: state.step });
-            }}
-          />
-        </div>
+          </Container>
+          <div className="dappForm">
+            <Image src={pen} size="small" centered />
+            <Header as="h2">
+              Create a new dApp
+              <Header.Subheader>
+                or clone an existing one{' '}
+                <Image src={clone} size="mini" inline />
+              </Header.Subheader>
+            </Header>
+            <Form
+              error={!!this.state.errorMessage}
+              onSubmit={() => this.setState({ currentDappFormStep: 2 })}
+            >
+              <Search
+                fluid
+                size="large"
+                noResultsMessage="No results found"
+                noResultsDescription="'Enter' to create a new dApp!"
+                loading={this.state.isLoading}
+                onSearchChange={_.debounce(this.handleSearchChange, 500, {
+                  leading: true
+                })}
+                placeholder="myDApp"
+                value={this.state.dappName}
+                results={this.state.results}
+                resultRenderer={resultRenderer}
+                onResultSelect={this.handleResultSelect}
+                required={true}
+              />
+              <Navigation direction="right" formSubmit={true} />
+            </Form>
+            <br />
+            <Grid columns={2} centered stackable>
+              <Grid.Column>
+                <div className="dappFormOption">{this.renderUserHistory()}</div>
+              </Grid.Column>
+              <Grid.Column>
+                <div className="dappFormOption">
+                  {this.renderGlobalHistory()}
+                </div>
+              </Grid.Column>
+            </Grid>
+            <Navigation
+              step={currentDappFormStep}
+              direction="left"
+              onUpdate={state => {
+                this.setState({ currentDappFormStep: state.step });
+              }}
+            />
+          </div>
+        </Container>
       );
     } else if (currentDappFormStep === 2) {
       formDisplay = (
-        <div>
-          <Image centered size="small" src={details} />
-          <Header as="h2" textAlign="center">
-            Enter details for "{this.state.contractName}"
-          </Header>
-          <Grid textAlign="center">
-            <Segment compact textAlign="center">
-              <Form
-                error={!!this.state.errorMessage}
-                onSubmit={() =>
-                  this.setState({
-                    currentDappFormStep: 3
-                  })
-                }
-              >
-                <Form.Group inline>
-                  <Form.Input
-                    inline
-                    required
-                    name="contractAddress"
-                    label="Address"
-                    placeholder="0xab123..."
-                    value={this.state.contractAddress}
-                    onChange={this.handleChange}
-                  />
-                  <Form.Input required>
-                    <Form.Dropdown
-                      placeholder="Mainnet, Ropsten, Rinkeby..."
-                      label="Network"
-                      required
-                      selection
-                      inline
-                      name="requiredNetwork"
-                      onChange={this.handleChange}
-                      options={[
-                        { key: 'Mainnet', value: 'Mainnet', text: 'Mainnet' },
-                        { key: 'Ropsten', value: 'Ropsten', text: 'Ropsten' },
-                        { key: 'Rinkeby', value: 'Rinkeby', text: 'Rinkeby' },
-                        { key: 'Kovan', value: 'Kovan', text: 'Kovan' },
-                        {
-                          key: 'Private',
-                          value: 'Unknown',
-                          text: 'Private (local-host)'
-                        }
-                      ]}
-                      value={this.state.requiredNetwork}
-                    />
-                  </Form.Input>
-                </Form.Group>
-                <Form.TextArea
-                  rows="15"
-                  required
-                  label={
-                    <div>
-                      Interface ABI{' '}
-                      <Popup
-                        flowing
-                        hoverable
-                        trigger={<Icon name="question circle" />}
-                      >
-                        Issues with your Application Binary Interface? Check the
-                        proper formatting listed in the{' '}
-                        <a
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
-                        >
-                          Solidity docs
-                        </a>
-                        .
-                      </Popup>
-                    </div>
+        <Container>
+          <Container className="progressBar">
+            <Progress
+              value={1}
+              total="3"
+              progress="ratio"
+              color="teal"
+              size="medium"
+            />
+          </Container>
+          <div className="dappForm">
+            <Image centered size="small" src={details} />
+            <Header as="h2" textAlign="center">
+              Enter details for "{this.state.dappName}"
+            </Header>
+            <Grid textAlign="center">
+              <div className="dappFormOption">
+                <Form
+                  error={!!this.state.errorMessage}
+                  onSubmit={() =>
+                    this.setState({
+                      currentDappFormStep: 3
+                    })
                   }
-                  placeholder={`[{"constant": false,"inputs": [],"name": "distributeFunds", "outputs": [{"name": "","type": "bool"}],"payable": true, "stateMutability": "payable","type": "function"}...]`}
-                  value={this.state.abiRaw}
-                  onChange={this.handleChangeABI}
-                />
-                <Message
-                  attached="top"
-                  error
-                  header="Oops!"
-                  content={this.state.errorMessage}
-                />
-                <Navigation direction="right" formSubmit={true} />
-              </Form>
-            </Segment>
-          </Grid>
-          <Navigation
-            step={currentDappFormStep}
-            direction="left"
-            onUpdate={state => {
-              this.setState({ currentDappFormStep: 1 });
-            }}
-          />
-        </div>
+                >
+                  <Form.Group inline>
+                    <Form.Input
+                      inline
+                      required
+                      name="contractAddress"
+                      label="Address"
+                      placeholder="0xab123..."
+                      value={this.state.contractAddress}
+                      onChange={this.handleChange}
+                    />
+                    <Form.Input required>
+                      <Form.Dropdown
+                        placeholder="Mainnet, Ropsten, Rinkeby..."
+                        label="Network"
+                        required
+                        selection
+                        inline
+                        name="network"
+                        onChange={this.handleChange}
+                        options={[
+                          { key: 'Mainnet', value: 'Mainnet', text: 'Mainnet' },
+                          { key: 'Ropsten', value: 'Ropsten', text: 'Ropsten' },
+                          { key: 'Rinkeby', value: 'Rinkeby', text: 'Rinkeby' },
+                          { key: 'Kovan', value: 'Kovan', text: 'Kovan' },
+                          {
+                            key: 'Private',
+                            value: 'Unknown',
+                            text: 'Private (local-host)'
+                          }
+                        ]}
+                        value={this.state.network}
+                      />
+                    </Form.Input>
+                  </Form.Group>
+                  {errorMessage}
+                  <Form.TextArea
+                    rows="15"
+                    required
+                    label={
+                      <div>
+                        Interface ABI{' '}
+                        <Popup
+                          flowing
+                          hoverable
+                          trigger={<Icon name="question circle" />}
+                        >
+                          Issues with your Application Binary Interface? Check
+                          the proper formatting listed in the{' '}
+                          <a
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
+                          >
+                            Solidity docs
+                          </a>
+                          .
+                        </Popup>
+                      </div>
+                    }
+                    placeholder={`[{"constant": false,"inputs": [],"name": "distributeFunds", "outputs": [{"name": "","type": "bool"}],"payable": true, "stateMutability": "payable","type": "function"}...]`}
+                    value={this.state.abiRaw}
+                    onChange={this.handleChangeABI}
+                  />
+                  <Navigation direction="right" formSubmit={true} />
+                </Form>
+              </div>
+            </Grid>
+            <Navigation
+              step={currentDappFormStep}
+              direction="left"
+              onUpdate={state => {
+                this.setState({ currentDappFormStep: 1 });
+              }}
+            />
+          </div>
+        </Container>
       );
     } else if (currentDappFormStep === 3) {
       formDisplay = (
-        <div>
-          <Image size="small" centered src={shield} />
-          <Header as="h2" textAlign="center">
-            Choose your Security
-          </Header>
-          <Grid stackable columns={2} verticalAlign="bottom" textAlign="center">
-            <Grid.Column>
-              <Segment>
-                <Image centered size="tiny" src={tent} />
-                <Header as="h2">
-                  Low
-                  <Header.Subheader>
-                    Unique URL
-                    <br />
-                    Instant
-                    <br />
-                    Free
-                  </Header.Subheader>
-                </Header>
-                <Button
-                  size="huge"
-                  icon="lightning"
-                  color="green"
-                  onClick={this.generateDapp}
-                  content="Create dApp"
-                />
-              </Segment>
-            </Grid.Column>
-            <Grid.Column>
-              <Segment>
-                <Image centered size="small" src={castle} />
-                <Header as="h2">
-                  High (coming soon)
-                  <Header.Subheader>
-                    <Icon name="world" />
-                    Custom Ethereum Name Service URL
-                    <br />
-                    Permanent IPFS storage
-                    <br />
-                    <Icon name="dollar" />
-                    Pay what you want
-                  </Header.Subheader>
-                </Header>
-                <Button
-                  disabled
-                  size="huge"
-                  icon="lock"
-                  color="green"
-                  onClick={() => this.setState({ currentDappFormStep: 4 })}
-                  content="Create dApp"
-                />
-              </Segment>
-            </Grid.Column>
-          </Grid>
-          <Navigation
-            step={currentDappFormStep}
-            direction="left"
-            onUpdate={state => {
-              this.setState({ currentDappFormStep: 2 });
-            }}
-          />
-        </div>
+        <Container>
+          <Container className="progressBar">
+            <Progress
+              value={2}
+              total="3"
+              progress="ratio"
+              color="teal"
+              size="medium"
+            />
+          </Container>
+          <div className="dappForm">
+            <Image size="small" centered src={shield} />
+            <Header as="h2" textAlign="center">
+              Choose your Security
+            </Header>
+            <div className="dappFormOption">
+              <Grid
+                stackable
+                columns={2}
+                divided
+                verticalAlign="bottom"
+                textAlign="center"
+              >
+                <Grid.Column>
+                  <Image centered size="tiny" src={tent} />
+                  <Header as="h2">
+                    Low
+                    <Header.Subheader>
+                      Unique URL
+                      <br />
+                      Instant
+                      <br />
+                      Free
+                    </Header.Subheader>
+                  </Header>
+                  <Button
+                    size="huge"
+                    icon="lightning"
+                    color="green"
+                    onClick={this.generateDapp}
+                    content="Create dApp"
+                  />
+                </Grid.Column>
+                <Grid.Column>
+                  <Image centered size="small" src={castle} />
+                  <Header as="h2">
+                    High (coming soon)
+                    <Header.Subheader>
+                      <Icon name="world" />
+                      Custom Ethereum Name Service URL
+                      <br />
+                      Permanent IPFS storage
+                      <br />
+                      <Icon name="dollar" />
+                      Pay what you want
+                    </Header.Subheader>
+                  </Header>
+                  <Button
+                    disabled
+                    size="huge"
+                    icon="lock"
+                    color="green"
+                    onClick={() => this.setState({ currentDappFormStep: 4 })}
+                    content="Create dApp"
+                  />
+                </Grid.Column>
+              </Grid>
+            </div>
+            <Navigation
+              className="navigationButton"
+              step={currentDappFormStep}
+              direction="left"
+              onUpdate={state => {
+                this.setState({ currentDappFormStep: 2 });
+              }}
+            />
+          </div>
+        </Container>
       );
     } else if (currentDappFormStep === 4) {
       const resultRenderer = ({ title }) => [
@@ -839,273 +1040,69 @@ class App extends Component {
       };
 
       formDisplay = (
-        <div>
-          <Image size="small" centered src={tablet} />
-          <Header as="h2" textAlign="center">
-            Create a Secure & Permanent dApp
-          </Header>
-          <Form
-            error={!!this.state.errorMessage}
-            onSubmit={() => this.generateSecureDapp()}
-          >
-            <Search
-              fluid
-              noResultsMessage="This name is available!"
-              loading={this.state.isLoading}
-              onSearchChange={_.debounce(this.handleEnsSearchChange, 500, {
-                leading: true
-              })}
-              placeholder="mydApp"
-              value={this.state.ensSubnode}
-              results={this.state.results}
-              resultRenderer={resultRenderer}
-              required={true}
+        <Container>
+          <Container className="progressBar">
+            <Progress
+              value={3}
+              total="3"
+              progress="ratio"
+              color="teal"
+              size="medium"
             />
-            .oneclickdapp.eth
-            <Form.Input
-              label="Name your price (ETH)"
-              required
-              units="eth"
-              inline
-              name="ensFee"
-              onChange={this.handleChange}
-              value={this.state.ensFee}
+          </Container>
+          <div className="dappForm">
+            <Image size="small" centered src={tablet} />
+            <Header as="h2" textAlign="center">
+              Create a Secure & Permanent dApp
+            </Header>
+            <Form
+              error={!!this.state.errorMessage}
+              onSubmit={() => this.generateSecureDapp()}
+            >
+              <Search
+                fluid
+                noResultsMessage="This name is available!"
+                loading={this.state.isLoading}
+                onSearchChange={_.debounce(this.handleEnsSearchChange, 500, {
+                  leading: true
+                })}
+                placeholder="mydApp"
+                value={this.state.ensSubnode}
+                results={this.state.results}
+                resultRenderer={resultRenderer}
+                required={true}
+              />
+              .oneclickdapp.eth
+              <Form.Input
+                label="Name your price (ETH)"
+                required
+                units="eth"
+                inline
+                name="ensFee"
+                onChange={this.handleChange}
+                value={this.state.ensFee}
+              />
+              <Message
+                attached="top"
+                error
+                header="Oops!"
+                content={this.state.errorMessage}
+              />
+              <Button size="huge" content="Create dApp" color="green" />
+            </Form>
+            <Navigation
+              step={currentDappFormStep}
+              direction="left"
+              onUpdate={state => {
+                this.setState({ currentDappFormStep: 3 });
+              }}
             />
-            <Message
-              attached="top"
-              error
-              header="Oops!"
-              content={this.state.errorMessage}
-            />
-            <Button size="huge" content="Create dApp" color="green" />
-          </Form>
-          <Navigation
-            step={currentDappFormStep}
-            direction="left"
-            onUpdate={state => {
-              this.setState({ currentDappFormStep: 3 });
-            }}
-          />
-        </div>
+          </div>
+        </Container>
       );
     }
 
-    return (
-      <div>
-        <Divider hidden />
-        <Container>
-          <Progress
-            value={currentDappFormStep}
-            total="3"
-            progress="ratio"
-            color="teal"
-            size="medium"
-          />
-        </Container>
-        {formDisplay}
-      </div>
-    );
-  }
-  renderInterface() {
-    const { requiredNetwork, metaData } = this.state;
-    let etherscan = 'https://etherscan.io/';
-    if (requiredNetwork) {
-      if (
-        requiredNetwork[0] === 'Unknown' ||
-        requiredNetwork[0] === 'private'
-      ) {
-        etherscan = 'http://localhost:8000/#/';
-      } else if (requiredNetwork[0] === 'POA') {
-        etherscan = 'https://blockscout.com/poa/core/';
-      } else if (requiredNetwork[0] === 'xDai') {
-        etherscan = 'https://blockscout.com/poa/dai/';
-      } else if (requiredNetwork[0] !== 'Mainnet') {
-        etherscan = 'https://' + requiredNetwork[0] + '.etherscan.io/';
-      }
-    }
-    let displayRegistryData = 'Metadata:  (available only on mainnet)';
-    if (metaData) {
-      displayRegistryData = (
-        <div>
-          Metadata:
-          <Popup
-            hoverable
-            flowing
-            keepInViewPort
-            position="bottom left"
-            trigger={
-              <Button
-                size="tiny"
-                onClick={() => {
-                  window.open(metaData.data.metadata.url, '_blank');
-                }}
-              >
-                <Image inline size="mini" src={metaData.data.metadata.logo} />
-                {metaData.name}
-              </Button>
-            }
-          >
-            <Container>
-              <Table definition collapsing>
-                <Table.Body>
-                  <Table.Row>
-                    <Table.Cell>Description</Table.Cell>
-                    <Table.Cell>
-                      {metaData.data.metadata.description}
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell>Verified</Table.Cell>
-                    <Table.Cell>
-                      {JSON.stringify(
-                        metaData.data.metadata.reputation.verified
-                      )}
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell>Status</Table.Cell>
-                    <Table.Cell>
-                      {metaData.data.metadata.reputation.status}
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell>Category</Table.Cell>
-                    <Table.Cell>
-                      {metaData.data.metadata.reputation.category}
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell>Self attested</Table.Cell>
-                    <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell>Curated</Table.Cell>
-                    <Table.Cell>{metaData.curated.toString()}</Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell>Scam info</Table.Cell>
-                    <Table.Cell>
-                      {JSON.stringify(metaData.data.scamdb)}
-                    </Table.Cell>
-                  </Table.Row>
-                </Table.Body>
-              </Table>
-              Metadata powered by{' '}
-              <a
-                target="_blank"
-                rel="noopener noreferrer"
-                href="https://ethregistry.org/"
-              >
-                Eth Registry
-              </a>
-            </Container>
-          </Popup>
-        </div>
-      );
-    } else if (this.state.requiredNetwork[0] === 'Mainnet') {
-      displayRegistryData = (
-        <div>
-          Metadata: Nothing found. Add it to{' '}
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href="http://www.oneclickdapp.com/resume-reflex/"
-          >
-            EthRegistry
-          </a>
-        </div>
-      );
-    }
-    let displayErrorMessage = <div />;
-    if (this.state.errorMessageView) {
-      displayErrorMessage = (
-        <div
-          style={{
-            position: 'fixed',
-            zIndex: 10,
-            top: 60,
-            left: 60,
-            paddingRight: 60,
-            textAlign: 'left'
-          }}
-        >
-          <Message
-            size="large"
-            error
-            onDismiss={() => this.setState({ errorMessageView: false })}
-            header="Error:"
-            content={this.state.errorMessageView}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <Segment fluid inverted textAlign="center">
-          <h2>dApp: "{this.state.contractName}"</h2>
-          <Grid stackable columns={2}>
-            <Grid.Column textAlign="center">
-              Network: {this.state.requiredNetwork}
-              <br />
-              Contract address:{' '}
-              <a
-                href={`${etherscan}address/${this.state.contractAddress}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {this.state.contractAddress.substring(0, 7)}...
-              </a>
-              <br />
-              {displayRegistryData}
-            </Grid.Column>
-            <Grid.Column textAlign="center">
-              URL: oneclickdapp.com{this.state.mnemonic || '/ ...'} <br />
-              (press{' '}
-              {navigator.userAgent.toLowerCase().indexOf('mac') !== -1
-                ? 'Command/Cmd'
-                : 'CTRL'}{' '}
-              + D to Bookmark)
-              <TwitterShareButton
-                title={
-                  '🔨 I just made an instant dApp called "' +
-                  this.state.contractName +
-                  '." View it at oneclickdapp.com' +
-                  this.state.mnemonic
-                }
-                url={'www.oneclickdapp.com' + this.state.mnemonic}
-                hashtags={['oneclickdapp', 'BUIDL']}
-              >
-                <Button icon primary size="small">
-                  <Icon name="twitter" />
-                  Tweet this dApp
-                </Button>
-              </TwitterShareButton>
-            </Grid.Column>
-          </Grid>
-        </Segment>
-        <Divider hidden />
-        <Container>
-          <Grid stackable columns={2}>
-            <Grid.Column>
-              <Header>
-                Write functions
-                <Header.Subheader>(must pay transaction fee)</Header.Subheader>
-              </Header>
-              {this.renderSends()}
-            </Grid.Column>
-            <Grid.Column>
-              <Header>
-                Read functions
-                <Header.Subheader>(free)</Header.Subheader>
-              </Header>
-              {this.renderCalls()}
-            </Grid.Column>
-          </Grid>
-        </Container>
-        {displayErrorMessage}
-      </div>
-    );
+    return <div>{formDisplay}</div>;
   }
   renderGlobalHistory() {
     const { recentContracts } = this.state;
@@ -1115,7 +1112,7 @@ class App extends Component {
         <Header textAlign="center" as="h3" icon>
           Recent Public dApps
         </Header>
-        <div style={{ overflow: 'auto', maxHeight: 300 }}>
+        <div className="dappList">
           {recentContracts.length > 0 ? (
             <Table fixed unstackable selectable>
               <Table.Header>
@@ -1177,7 +1174,7 @@ class App extends Component {
           )}{' '}
           Your saved dApps
         </Header>
-        <div style={{ overflow: 'auto', maxHeight: 300 }}>
+        <div className="dappList">
           {userSavedContracts !== undefined && userSavedContracts.length > 0 ? (
             <Table fixed selectable unstackable>
               <Table.Header>
@@ -1222,7 +1219,7 @@ class App extends Component {
       </div>
     );
   }
-  renderSends() {
+  renderSendFunctions() {
     var forms = []; // Each Method gets a form
     if (this.state.abi) {
       // check that abi is ready
@@ -1303,7 +1300,7 @@ class App extends Component {
       }
     }
   }
-  renderCalls() {
+  renderCallFunctions() {
     const { abi, methodData } = this.state;
     var forms = []; // Each View gets a form
 
@@ -1369,6 +1366,229 @@ class App extends Component {
     }
     return <div>{forms}</div>;
   }
+  renderInterface() {
+    const { network, dappData } = this.state;
+    const errorMessage = this.showErrorMessage('popup');
+    return (
+      <div>
+        <Container
+          style={{
+            paddingTop: '2em',
+            paddingBottom: '5em'
+          }}
+        >
+          <Grid stackable columns={2}>
+            <Grid.Column>
+              <Header>
+                Write functions
+                <Header.Subheader>(must pay transaction fee)</Header.Subheader>
+              </Header>
+              {this.renderSendFunctions()}
+            </Grid.Column>
+            <Grid.Column>
+              <Header>
+                Read functions
+                <Header.Subheader>(free)</Header.Subheader>
+              </Header>
+              {this.renderCallFunctions()}
+            </Grid.Column>
+          </Grid>
+        </Container>
+        {errorMessage}
+      </div>
+    );
+  }
+  renderPremiumFunctions(methodName, helperText, colorDark) {
+    let displayMethod = <div>Loading method from ABI...</div>;
+    if (this.state.abi) {
+      try {
+        const methodIndex = this.state.methodData.findIndex(
+          method => method.name === methodName
+        );
+        const abiObject = JSON.parse(this.state.abi);
+        const method = abiObject[methodIndex];
+        var inputs = [];
+        var outputs = [];
+        let displayResponse = <div />;
+        let displayMethod = <div />;
+        let displayButton = <div />;
+        if (method.stateMutability !== 'view' && method.type === 'function') {
+          var methodTypeHelperText = 'function without arguments';
+          method.inputs.forEach((input, j) => {
+            methodTypeHelperText = 'function';
+            inputs.push(
+              <Form.Input
+                required
+                name={method.name}
+                key={j}
+                inputindex={j}
+                label={input.name}
+                placeholder={input.type}
+                onChange={this.handleMethodDataChange}
+              />
+            );
+          });
+          if (method.payable) {
+            methodTypeHelperText = 'payable function';
+            inputs.push(
+              <Form.Input
+                required
+                key={method.name}
+                inputindex={-1}
+                name={method.name}
+                label={`Value to send (ETH)`}
+                placeholder="value"
+                onChange={this.handleMethodDataChange}
+              />
+            );
+          }
+          displayButton = (
+            <Form.Button
+              icon="write"
+              labelPosition="left"
+              content="Sign & Submit"
+              style={{ background: colorDark, color: 'white' }}
+            />
+          );
+        } else if (method.stateMutability === 'view') {
+          console.log(method);
+          method.inputs.forEach((input, j) => {
+            inputs.push(
+              <Form.Input
+                required
+                name={method.name}
+                inputindex={j}
+                key={j}
+                inline
+                label={input.name}
+                placeholder={input.type}
+                onChange={this.handleMethodDataChange}
+              />
+            );
+          });
+          displayButton = (
+            <Form.Button
+              icon="refresh"
+              content="Check"
+              labelPosition="left"
+              style={{ background: colorDark, color: 'white' }}
+            />
+          );
+        }
+        if (this.state.methodData[methodIndex].outputs.length > 0) {
+          method.outputs.forEach((output, j) => {
+            const outputData = this.state.methodData[methodIndex].outputs[j];
+            outputs.push(
+              <div key={j}>
+                {output.name || '(unnamed)'} <i>{output.type}</i>:
+                <Container>
+                  <b>{outputData || ' '}</b>
+                </Container>
+              </div>
+            );
+          });
+          displayResponse = (
+            <div>
+              <Divider style={{ marginBottom: 0 }} />
+              <Header as="h4" textAlign="center" style={{ marginTop: 2 }}>
+                Response
+              </Header>
+              {outputs}
+            </div>
+          );
+        }
+        displayMethod = (
+          <div>
+            <Segment style={{ background: colorDark, color: 'white' }}>
+              <i>{helperText}</i>
+            </Segment>
+            <Form
+              onSubmit={this.handleSubmitCall}
+              name={method.name}
+              key={method.name}
+            >
+              {inputs}
+              <Container textAlign="center">
+                {displayButton}
+
+                <i>({method.name})</i>
+              </Container>
+            </Form>
+            {displayResponse}
+          </div>
+        );
+        return <div>{displayMethod}</div>;
+      } catch (e) {
+        return <h2>Error generating function from ABI</h2>;
+      }
+    }
+  }
+  renderPremiumInterface() {
+    const { network, metaData, dappData, activeIndex } = this.state;
+    const errorMessage = this.showErrorMessage('popup');
+    let displayPremiumInterface = [];
+    if (dappData.functions) {
+      dappData.functions.forEach((item, index) => {
+        displayPremiumInterface.push(
+          <Accordion
+            as={Card}
+            link
+            raised
+            centered
+            key={index}
+            className="function"
+            style={{ background: dappData.colorLight }}
+          >
+            <Card.Content textAlign="left">
+              <Accordion.Title
+                active={activeIndex.includes(index)}
+                index={index}
+                onClick={this.handleClick}
+              >
+                <Grid columns={2} verticalAlign="middle">
+                  <Grid.Column>
+                    <Icon
+                      size="huge"
+                      circular
+                      name={item.icon}
+                      style={{
+                        background: dappData.colorDark,
+                        color: 'white'
+                        // color: dappData.colorLight
+                      }}
+                    />
+                  </Grid.Column>
+                  <Grid.Column>
+                    <Header>{item.displayName}</Header>
+                  </Grid.Column>
+                </Grid>
+              </Accordion.Title>
+              <Accordion.Content active={activeIndex.includes(index)}>
+                {this.renderPremiumFunctions(
+                  item.name,
+                  item.helperText,
+                  dappData.colorDark
+                )}
+              </Accordion.Content>
+            </Card.Content>
+          </Accordion>
+        );
+      });
+    }
+    return (
+      <div
+        style={{
+          paddingTop: '3em',
+          paddingBottom: '5em'
+        }}
+      >
+        <Container>
+          <Card.Group>{displayPremiumInterface}</Card.Group>
+        </Container>
+        {errorMessage}
+      </div>
+    );
+  }
   render() {
     let {
       account,
@@ -1376,7 +1596,8 @@ class App extends Component {
       block,
       avgBlockTime,
       etherscan,
-      requiredNetwork,
+      network,
+      dappData,
       displayDappForm,
       displayLoading,
       enableDapparatus
@@ -1405,7 +1626,7 @@ class App extends Component {
       //     }}
       //     address={contractAddress}
       //     abi={this.state.abiRaw}
-      //     contractName={contractName}
+      //     contractName={getDappData}
       //   />
       // );
 
@@ -1465,8 +1686,6 @@ class App extends Component {
             this.setState(state);
           }}
           onReceipt={(transaction, receipt) => {
-            // this is one way to get the deployed contract address, but instead I'll switch
-            //  to a more straight forward callback system above
             console.log('Transaction Receipt', transaction, receipt);
           }}
         />
@@ -1478,22 +1697,18 @@ class App extends Component {
         <Dapparatus
           config={{
             DEBUG: false,
-            requiredNetwork: requiredNetwork,
+            network: network,
             metatxAccountGenerator: false,
             hide: displayDappForm,
-            boxStyle: {
-              paddingTop: 5
-            },
             textStyle: {
-              color: '#e5e5e5'
+              color: '#000000'
             },
             warningStyle: {
               fontSize: 20,
               color: '#d31717'
             },
             blockieStyle: {
-              size: 5,
-              top: 4
+              size: 5
             }
           }}
           metatx={METATX}
@@ -1513,54 +1728,471 @@ class App extends Component {
       mainDisplay = displayLoading;
     } else if (displayDappForm) {
       mainDisplay = this.renderDappForm();
+    } else if (this.state.dappData.premium) {
+      mainDisplay = this.renderPremiumInterface();
     } else {
       mainDisplay = this.renderInterface();
     }
     return (
       <div className="App">
-        <Menu size="huge" inverted fixed="top">
-          <Container>
-            <Menu.Item>One Click dApp</Menu.Item>
-            <Menu.Item as="a" href="http://oneclickdapp.com">
-              <Icon name="plus" /> New
-            </Menu.Item>
-            <Menu.Item>
-              <Dropdown simple text="About">
-                <Dropdown.Menu>
-                  <Dropdown.Item
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    href="https://github.com/blockchainbuddha/one-click-DApps"
-                    image={github}
-                    text="Github"
-                  />
-                  <Dropdown.Item
-                    image={twitter}
-                    href="https://twitter.com/pi0neerpat"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    text="twitter"
-                  />
-                  <Popup
-                    flowing
-                    hoverable
-                    trigger={<Dropdown.Item text="Help" image={question} />}
-                  >
-                    Need help? Use the chat in the bottom right corner.
-                  </Popup>
-                </Dropdown.Menu>
-              </Dropdown>
-            </Menu.Item>
-            <Menu.Menu position="right">{dapparatus}</Menu.Menu>
-          </Container>
-        </Menu>
-        <Divider />
-        <Divider />
-        {mainDisplay}
-        {connectedDisplay}
+        <div className="content">
+          <ResponsiveContainer
+            className="ResponsiveContainer"
+            dapparatus={dapparatus}
+            dappData={this.state.dappData}
+          >
+            {mainDisplay}
+            {connectedDisplay}
+          </ResponsiveContainer>
+        </div>
+        {this.renderFooter()}
       </div>
     );
   }
 }
 
 export default App;
+
+// Mobile Responsive components
+const ResponsiveContainer = ({ children, dapparatus, dappData }) => (
+  <div>
+    <DesktopContainer dapparatus={dapparatus} dappData={dappData}>
+      {children}
+    </DesktopContainer>
+    <MobileContainer dapparatus={dapparatus} dappData={dappData}>
+      {children}
+    </MobileContainer>
+  </div>
+);
+class DesktopContainer extends Component {
+  state = {};
+
+  hideFixedMenu = () => this.setState({ fixed: false });
+  showFixedMenu = () => this.setState({ fixed: true });
+
+  render() {
+    const { children, dapparatus, dappData } = this.props;
+    const { fixed } = this.state;
+    return (
+      <Responsive minWidth={Responsive.onlyTablet.minWidth}>
+        <Visibility
+          once={false}
+          onBottomPassed={this.showFixedMenu}
+          onBottomPassedReverse={this.hideFixedMenu}
+        >
+          <Menu borderless size="huge">
+            <Menu.Menu className="topMenu">
+              <Menu.Item as="a" href="http://oneclickdapp.com">
+                One Click dApp
+              </Menu.Item>
+              <Menu.Item as="a" href="http://oneclickdapp.com">
+                <Icon name="plus" /> New
+              </Menu.Item>
+              <Menu.Item>
+                <Dropdown simple text="About">
+                  <Dropdown.Menu>
+                    <Dropdown.Item
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      href="https://github.com/blockchainbuddha/one-click-DApps"
+                      image={github}
+                      text="Github"
+                    />
+                    <Dropdown.Item
+                      image={twitter}
+                      href="https://twitter.com/pi0neerpat"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      text="twitter"
+                    />
+                    <Popup
+                      flowing
+                      hoverable
+                      trigger={<Dropdown.Item text="Help" image={question} />}
+                    >
+                      Need help? Use the chat in the bottom right corner.
+                    </Popup>
+                  </Dropdown.Menu>
+                </Dropdown>
+              </Menu.Item>
+            </Menu.Menu>
+            <div className="dapparatus">{dapparatus}</div>
+          </Menu>
+          <Heading dappData={dappData} />
+        </Visibility>
+        {children}
+      </Responsive>
+    );
+  }
+}
+class MobileContainer extends Component {
+  state = {};
+
+  handlePusherClick = () => {
+    const { sidebarOpened } = this.state;
+
+    if (sidebarOpened) this.setState({ sidebarOpened: false });
+  };
+
+  handleToggle = () =>
+    this.setState({ sidebarOpened: !this.state.sidebarOpened });
+
+  render() {
+    const { children, dapparatus, dappData } = this.props;
+    const { sidebarOpened } = this.state;
+    return (
+      <Responsive maxWidth={Responsive.onlyMobile.maxWidth}>
+        <Sidebar.Pushable>
+          <Sidebar
+            as={Menu}
+            animation="uncover"
+            inverted
+            vertical
+            pointing
+            visible={sidebarOpened}
+            className="menu"
+          >
+            <Menu.Item as="a" href="http://oneclickdapp.com">
+              Create
+            </Menu.Item>
+            <Menu.Item
+              as="a"
+              image={twitter}
+              href="https://twitter.com/pi0neerpat"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Contact
+            </Menu.Item>
+            <Menu.Item
+              as="a"
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://github.com/blockchainbuddha/one-click-DApps"
+              image={github}
+            >
+              Github
+            </Menu.Item>
+            <Menu.Item header>
+              <br />
+              <br />
+              <br />
+              Something not working? <br />
+              Let us know in the chat at the bottom-right.
+            </Menu.Item>
+          </Sidebar>
+
+          <Sidebar.Pusher
+            dimmed={sidebarOpened}
+            onClick={this.handlePusherClick}
+            style={{ minHeight: '100vh' }}
+          >
+            <Menu inverted size="large">
+              <Menu.Item onClick={this.handleToggle}>
+                <Icon name="sidebar" />
+              </Menu.Item>
+              <Menu.Menu position="right" style={{ paddingTop: 9 }}>
+                {dapparatus}
+              </Menu.Menu>
+            </Menu>
+            <Heading mobile dappData={dappData} />
+            {children}
+          </Sidebar.Pusher>
+        </Sidebar.Pushable>
+      </Responsive>
+    );
+  }
+}
+// Handles favicon, background, and header for premium dApp
+const Heading = ({ mobile, dappData }) => {
+  var link =
+    document.querySelector("link[rel*='icon']") ||
+    document.createElement('link');
+  link.type = 'image/x-icon';
+  link.rel = 'shortcut icon';
+  link.href = dappData.favicon;
+  document.getElementsByTagName('head')[0].appendChild(link);
+  document.body.style.backgroundImage = `url(${backgroundImage})`;
+  document.body.style.backgroundAttachment = 'fixed';
+
+  if (dappData.premium) {
+    const etherscan = translateEtherscan(dappData.network);
+    const displayRegistryData = getRegistryData(
+      dappData.network,
+      dappData.metaData
+    );
+    if (dappData.colorDark) {
+      // Set background color
+      document.body.style.background = `linear-gradient(to right, ${
+        dappData.colorDark
+      }, ${dappData.colorLight})`;
+    }
+    let headerStyle = {
+      // set default header background
+      backgroundImage: `url(${backgroundImage})`,
+      backgroundAttachment: 'fixed',
+      backgroundSize: 'cover',
+      backgroundRepeat: 'repeat-x'
+    };
+    if (dappData.backgroundImage) {
+      // Set premium header background
+      headerStyle.backgroundImage = `url(${dappData.backgroundImage})`;
+    }
+    return (
+      <Segment style={headerStyle}>
+        <Header
+          as="h1"
+          content={dappData.dappName}
+          style={{
+            fontSize: mobile ? '2em' : '4em',
+            fontWeight: 'normal',
+            marginTop: mobile ? '1em' : '1em',
+            color: dappData.colorDark
+          }}
+        />
+        <Image centered src={dappData.icon} size="small" />
+        <Header
+          as="h2"
+          content={dappData.description}
+          style={{
+            fontSize: mobile ? '1.5em' : '1.7em',
+            fontWeight: 'normal'
+          }}
+        />
+        <Modal
+          trigger={
+            <Button
+              style={{
+                marginTop: mobile ? '0.5em' : '.1em',
+                background: dappData.colorDark,
+                color: 'white'
+              }}
+            >
+              Show Details
+            </Button>
+          }
+        >
+          <Modal.Header>About {dappData.dappName}</Modal.Header>
+          <Modal.Content image>
+            <Modal.Description>{dappData.instructions}</Modal.Description>
+          </Modal.Content>
+        </Modal>
+      </Segment>
+    );
+  } else if (dappData) {
+    const etherscan = translateEtherscan(dappData.network);
+    const displayRegistryData = getRegistryData(
+      dappData.network,
+      dappData.metaData
+    );
+    return (
+      <div className="defaultHeader">
+        <Grid
+          container
+          stackable
+          columns={2}
+          textAlign="center"
+          style={{
+            paddingTop: mobile ? '1em' : '2em'
+          }}
+        >
+          <Grid.Row verticalAlign="middle">
+            <Grid.Column textAlign="center">
+              <Header as="h1">
+                dApp: <b>{dappData.dappName}</b>
+              </Header>
+              <TwitterShareButton
+                title={
+                  '🔨 I just made an instant dApp called "' +
+                  dappData.name +
+                  '." View it at oneclickdapp.com' +
+                  dappData.mnemonic
+                }
+                url={'www.oneclickdapp.com' + dappData.mnemonic}
+                hashtags={['oneclickdapp', 'BUIDL']}
+              >
+                <Button icon primary size="small">
+                  <Icon name="twitter" />
+                  Tweet this dApp
+                </Button>
+              </TwitterShareButton>
+            </Grid.Column>
+            <Grid.Column textAlign="left">
+              <Table basic definition collapsing>
+                <Table.Body>
+                  <Table.Row>
+                    <Table.Cell>
+                      <Image src={ethereumSmall} size="mini" centered />
+                    </Table.Cell>
+                    <Table.Cell>
+                      <b>{dappData.network}</b>
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell textAlign="center">
+                      <Icon name="at" size="large" />
+                    </Table.Cell>
+                    <Table.Cell>
+                      <a
+                        href={`${etherscan}address/${dappData.contractAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {dappData.contractAddress.substring(0, 6)}...
+                        {dappData.contractAddress.substring(38, 50)}
+                      </a>
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell>MetaData</Table.Cell>
+                    <Table.Cell>{displayRegistryData} </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell textAlign="center">
+                      <Icon name="linkify" size="large" />
+                    </Table.Cell>
+                    <Table.Cell>
+                      oneclickdapp.com<b>{dappData.mnemonic || '/ ...'}</b>
+                      <br />
+                      <i>
+                        (press{' '}
+                        {navigator.userAgent.toLowerCase().indexOf('mac') !== -1
+                          ? 'Command/Cmd'
+                          : 'CTRL'}{' '}
+                        + D to Bookmark)
+                      </i>
+                    </Table.Cell>
+                  </Table.Row>
+                </Table.Body>
+              </Table>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
+      </div>
+    );
+  } else {
+    return null;
+  }
+};
+ResponsiveContainer.propTypes = {
+  children: PropTypes.node,
+  dapparatus: PropTypes.object
+};
+DesktopContainer.propTypes = {
+  children: PropTypes.node,
+  dapparatus: PropTypes.object
+};
+MobileContainer.propTypes = {
+  children: PropTypes.node
+};
+Heading.propTypes = {
+  mobile: PropTypes.bool
+};
+
+function translateEtherscan({ network }) {
+  let etherscan = 'https://etherscan.io/';
+  if (network) {
+    if (network[0] === 'Unknown' || network[0] === 'private') {
+      etherscan = 'http://localhost:8000/#/';
+    } else if (network[0] === 'POA') {
+      etherscan = 'https://blockscout.com/poa/core/';
+    } else if (network[0] === 'xDai') {
+      etherscan = 'https://blockscout.com/poa/dai/';
+    } else if (network[0] !== 'Mainnet') {
+      etherscan = 'https://' + network[0] + '.etherscan.io/';
+    }
+  }
+  return etherscan;
+}
+function getRegistryData({ metaData, network }) {
+  let registryData = '(available only on mainnet)';
+  if (metaData && metaData.data) {
+    registryData = (
+      <div>
+        Metadata:
+        <Popup
+          hoverable
+          flowing
+          keepInViewPort
+          position="bottom left"
+          trigger={
+            <Button
+              size="tiny"
+              onClick={() => {
+                window.open(metaData.data.metadata.url, '_blank');
+              }}
+            >
+              <Image inline size="mini" src={metaData.data.metadata.logo} />
+              {metaData.name}
+            </Button>
+          }
+        >
+          <Container>
+            <Table definition collapsing>
+              <Table.Body>
+                <Table.Row>
+                  <Table.Cell>Description</Table.Cell>
+                  <Table.Cell>{metaData.data.metadata.description}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Verified</Table.Cell>
+                  <Table.Cell>
+                    {JSON.stringify(metaData.data.metadata.reputation.verified)}
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Status</Table.Cell>
+                  <Table.Cell>
+                    {metaData.data.metadata.reputation.status}
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Category</Table.Cell>
+                  <Table.Cell>
+                    {metaData.data.metadata.reputation.category}
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Self attested</Table.Cell>
+                  <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Curated</Table.Cell>
+                  <Table.Cell>{metaData.curated.toString()}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell>Scam info</Table.Cell>
+                  <Table.Cell>
+                    {JSON.stringify(metaData.data.scamdb)}
+                  </Table.Cell>
+                </Table.Row>
+              </Table.Body>
+            </Table>
+            Metadata powered by{' '}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://ethregistry.org/"
+            >
+              Eth Registry
+            </a>
+          </Container>
+        </Popup>
+      </div>
+    );
+  } else if (network === 'Mainnet') {
+    registryData = (
+      <div>
+        Metadata: Nothing found. Add it to{' '}
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          href="http://www.oneclickdapp.com/resume-reflex/"
+        >
+          EthRegistry
+        </a>
+      </div>
+    );
+  }
+  return registryData;
+}

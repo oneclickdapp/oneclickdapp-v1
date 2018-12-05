@@ -1,4 +1,5 @@
-var mongoose = require("mongoose");
+var mongoose = require('mongoose');
+mongoose.set('useFindAndModify', false);
 
 mongoose.promise = global.Promise;
 

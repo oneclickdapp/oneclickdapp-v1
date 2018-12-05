@@ -9,3 +9,19 @@ function compile(contract) {
 }
 
 compile(contract);
+
+<Accordion as={Card} link raised centered key={index}>
+  <Card.Content textAlign="center">
+    <Accordion.Title
+      active={activeIndex === index}
+      index={index}
+      onClick={this.handleClick}
+    >
+      <Icon size="huge" circular name={item.icon} />
+      <Header>{item.displayName}</Header>
+    </Accordion.Title>
+    <Accordion.Content active={activeIndex === index}>
+      {this.renderPremiumFunctions(item.name, item.helperText)}
+    </Accordion.Content>
+  </Card.Content>
+</Accordion>;

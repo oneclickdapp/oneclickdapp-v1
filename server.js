@@ -1,23 +1,17 @@
 const Registry = require('eth-registry');
 const Web3 = require('web3');
-
-// Dependencies
 const _ = require('lodash');
 const express = require('express');
 const fs = require('fs');
-// Database toolds
 const bodyParser = require('body-parser');
-
 require('./db/config'); // Database login secrets
 var { db } = require('./db/mongoose');
 var { Contract } = require('./models/contract');
 var { User } = require('./models/user');
-
 var mnGen = require('mngen'); // Random word generator
-process.env.NODE_ENV === 'production';
+
 var app = express();
 app.set('port', process.env.PORT || 3001);
-// Express only serves static assets in production
 app.use(bodyParser.json());
 
 app.post('/contracts', (req, res) => {
@@ -69,7 +63,6 @@ app.post('/contracts', (req, res) => {
     }
   );
 });
-
 app.get('/contracts/recentContracts', (req, res) => {
   console.log(' ');
   console.log('################## GET  #####################');
@@ -98,7 +91,6 @@ app.get('/contracts/recentContracts', (req, res) => {
       console.log(err.err);
     });
 });
-
 app.get('/contracts/externalContracts', (req, res) => {
   console.log(' ');
   console.log('################## GET  #####################');
@@ -115,59 +107,78 @@ app.get('/contracts/externalContracts', (req, res) => {
     externalContracts
   });
 });
-
 app.get('/contracts/:mnemonic', (req, res) => {
   var mnemonic = req.params.mnemonic.toLowerCase();
   console.log(' ');
   console.log('################## GET  #####################');
   console.log(`Fetching contract for mnemonic: ${mnemonic}`);
 
-  Contract.find({ mnemonic: mnemonic })
-    .then(contractArray => {
-      if (contractArray.length) {
-        var myContract = contractArray[0];
-        const contractName = myContract.contractName;
-        const abi = myContract.abi;
-        const contractAddress = myContract.contractAddress;
-        const network = myContract.network;
-        const createdAt = myContract._id.getTimestamp();
-
+  Contract.findOneAndUpdate(
+    { mnemonic },
+    { $inc: { viewCount: 1 }, $push: { userAddressArray: '0xabc' } },
+    (err, contract) => {
+      if (contract !== undefined) {
         const provider = new Web3.providers.HttpProvider(
           `https://mainnet.infura.io/`
         );
         const registry = new Registry(provider);
         let metaData = {};
         registry
-          .get(contractAddress)
+          .get(contract.contractAddress)
           .then(metaData => {
             res.send({
-              contractName,
-              abi,
-              contractAddress,
-              network,
-              createdAt,
-              metaData
+              premium: contract.premium || false,
+              contractName: contract.contractName,
+              description: contract.description || '',
+              mnemonic: contract.mnemonic,
+              contactInfo: contract.contactInfo || '',
+              colorLight: contract.colorLight || '',
+              colorDark: contract.colorDark || '',
+              instructions: contract.instructions || '',
+              network: contract.network,
+              contractAddress: contract.contractAddress,
+              creatorAddress: contract.creatorAddress,
+              metaData: contract.metaData || '',
+              functions: contract.functions || '',
+              abi: contract.abi || '',
+              backgroundImage: contract.backgroundImage || '',
+              favicon: contract.favicon || '',
+              icon: contract.icon || '',
+              createdAt: contract._id.getTimestamp()
             });
           })
           .catch(e => {
             console.error('Metadata not accessible');
             res.send({
-              contractName,
-              abi,
-              contractAddress,
-              network,
-              createdAt,
-              metaData: ''
+              premium: contract.premium || false,
+              contractName: contract.contractName,
+              description: contract.description || '',
+              mnemonic: contract.mnemonic,
+              contactInfo: contract.contactInfo || '',
+              colorLight: contract.colorLight || '',
+              colorDark: contract.colorDark || '',
+              instructions: contract.instructions || '',
+              network: contract.network,
+              contractAddress: contract.contractAddress,
+              creatorAddress: contract.creatorAddress,
+              metaData: '',
+              functions: contract.functions || '',
+              abi: contract.abi || '',
+              backgroundImage: contract.backgroundImage || '',
+              favicon: contract.favicon || '',
+              icon: contract.icon || '',
+              createdAt: contract._id.getTimestamp()
             });
           });
       } else {
+        console.log(`No contract found`);
         res.status(404).send(`Contract not found: ${mnemonic}`);
       }
-    })
-    .catch(function(err) {
-      res.status(404).send(`Contract not found: ${mnemonic}`);
-      console.log(err.err);
-    });
+    }
+  ).catch(function(err) {
+    console.log(`Contract not found` + err);
+    res.status(404).send(`Contract not found: ${mnemonic}`);
+  });
 });
 
 app.get('/user/:creatorAddress', (req, res) => {
@@ -204,13 +215,11 @@ app.get('/user/:creatorAddress', (req, res) => {
   }
 });
 
-// Return the front-end for all other GET calls
 if (process.env.NODE_ENV === 'production') {
   app.set('port', 80);
   app.use(express.static('client/build'));
   app.use('*', express.static('client/build'));
 }
-
 app.listen(app.get('port'), () => {
   console.log(
     `_______________________________________________________________`
@@ -222,6 +231,4 @@ app.listen(app.get('port'), () => {
   console.log(`______________________________________________________________`);
   console.log(` `);
 });
-
-//allows export app to server.test.js
 module.exports = { app };
