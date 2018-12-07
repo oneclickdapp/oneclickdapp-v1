@@ -23,9 +23,11 @@ class Navigation extends Component {
       marginBottom: 0,
       top: 100,
       left: 10,
-      opacity: .75,
+      opacity: 0.75,
       zIndex: 10,
-      paddingRight: 10
+      paddingRight: 10,
+      color: 'transparent',
+      backgroundColor: 'transparent'
     };
     let image = arrowLeft;
     if (this.props.direction === 'right') {
@@ -39,11 +41,9 @@ class Navigation extends Component {
     }
 
     return (
-      <div style={style}>
-        <Button basic inverted name="currentDappFormStep" onClick={onClick}>
-          <Image src={image} size="tiny" />
-        </Button>
-      </div>
+      <Button style={style} name="currentDappFormStep" onClick={onClick}>
+        <Image src={image} size="tiny" />
+      </Button>
     );
   }
 }

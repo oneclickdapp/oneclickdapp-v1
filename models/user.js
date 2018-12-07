@@ -6,6 +6,9 @@ var User = mongoose.model('User', {
   },
   savedDapps: {
     type: Array
+  },
+  transactions: {
+    type: Array
   }
 });
 

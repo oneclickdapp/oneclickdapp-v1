@@ -8,6 +8,7 @@ require('./db/config'); // Database login secrets
 var { db } = require('./db/mongoose');
 var { Contract } = require('./models/contract');
 var { User } = require('./models/user');
+var { Email } = require('./models/email');
 var mnGen = require('mngen'); // Random word generator
 
 var app = express();
@@ -63,6 +64,62 @@ app.post('/contracts', (req, res) => {
     }
   );
 });
+app.post('/emails', (req, res) => {
+  const email = req.body.email;
+  console.log(' ');
+  console.log('################## POST #####################');
+  console.log(`Email: ${email}`);
+
+  Email.findOneAndUpdate(
+    { email },
+    { $set: { email } },
+    {
+      upsert: true,
+      new: true
+    },
+    function() {
+      console.log('Email recorded successfully!');
+    }
+  );
+});
+app.post('/transaction', (req, res) => {
+  const hash = req.body.hash;
+  const network = req.body.network;
+  const value = req.body.value;
+  const mnemonic = req.body.mnemonic;
+  if (req.body.userAddress) {
+    userAddress = req.body.userAddress.toLowerCase();
+  }
+  console.log(' ');
+  console.log('################## POST #####################');
+  console.log(
+    `${value} ETH transaction on ${network} http://oneclickdapp.com/${mnemonic}`
+  );
+  console.log(`tx hash: ${tx}`);
+
+  Transaction.findOneAndUpdate(
+    { hash: hash },
+    { $set: { hash, network, value, mnemonic, userAddress } },
+    {
+      upsert: true,
+      new: true
+    },
+    function() {
+      console.log('Transaction recorded.');
+    }
+  );
+  User.findOneAndUpdate(
+    { creatorAddress: userAddress },
+    { $push: { transactions: hash } },
+    {
+      upsert: true,
+      new: true
+    },
+    function() {
+      console.log('User transactions data updated.');
+    }
+  );
+});
 app.get('/contracts/recentContracts', (req, res) => {
   console.log(' ');
   console.log('################## GET  #####################');
@@ -108,79 +165,87 @@ app.get('/contracts/externalContracts', (req, res) => {
   });
 });
 app.get('/contracts/:mnemonic', (req, res) => {
-  var mnemonic = req.params.mnemonic.toLowerCase();
-  console.log(' ');
-  console.log('################## GET  #####################');
-  console.log(`Fetching contract for mnemonic: ${mnemonic}`);
-
-  Contract.findOneAndUpdate(
-    { mnemonic },
-    { $inc: { viewCount: 1 }, $push: { userAddressArray: '0xabc' } },
-    (err, contract) => {
-      if (contract !== undefined) {
-        const provider = new Web3.providers.HttpProvider(
-          `https://mainnet.infura.io/`
-        );
-        const registry = new Registry(provider);
-        let metaData = {};
-        registry
-          .get(contract.contractAddress)
-          .then(metaData => {
-            res.send({
-              premium: contract.premium || false,
-              contractName: contract.contractName,
-              description: contract.description || '',
-              mnemonic: contract.mnemonic,
-              contactInfo: contract.contactInfo || '',
-              colorLight: contract.colorLight || '',
-              colorDark: contract.colorDark || '',
-              instructions: contract.instructions || '',
-              network: contract.network,
-              contractAddress: contract.contractAddress,
-              creatorAddress: contract.creatorAddress,
-              metaData: contract.metaData || '',
-              functions: contract.functions || '',
-              abi: contract.abi || '',
-              backgroundImage: contract.backgroundImage || '',
-              favicon: contract.favicon || '',
-              icon: contract.icon || '',
-              createdAt: contract._id.getTimestamp()
-            });
-          })
-          .catch(e => {
-            console.error('Metadata not accessible');
-            res.send({
-              premium: contract.premium || false,
-              contractName: contract.contractName,
-              description: contract.description || '',
-              mnemonic: contract.mnemonic,
-              contactInfo: contract.contactInfo || '',
-              colorLight: contract.colorLight || '',
-              colorDark: contract.colorDark || '',
-              instructions: contract.instructions || '',
-              network: contract.network,
-              contractAddress: contract.contractAddress,
-              creatorAddress: contract.creatorAddress,
-              metaData: '',
-              functions: contract.functions || '',
-              abi: contract.abi || '',
-              backgroundImage: contract.backgroundImage || '',
-              favicon: contract.favicon || '',
-              icon: contract.icon || '',
-              createdAt: contract._id.getTimestamp()
-            });
-          });
-      } else {
-        console.log(`No contract found`);
-        res.status(404).send(`Contract not found: ${mnemonic}`);
-      }
+  try {
+    var mnemonic = req.params.mnemonic.toLowerCase();
+    let userAddress = '0x';
+    if (req.body.userAddress) {
+      userAddress = req.body.userAddress.toLowerCase();
     }
-  ).catch(function(err) {
+    console.log(' ');
+    console.log('################## GET  #####################');
+    console.log(`Fetching contract for mnemonic: ${mnemonic}`);
+
+    Contract.findOneAndUpdate(
+      { mnemonic },
+      { $inc: { viewCount: 1 }, $push: { userAddressArray: userAddress } },
+      (err, contract) => {
+        if (contract !== null) {
+          const provider = new Web3.providers.HttpProvider(
+            `https://mainnet.infura.io/`
+          );
+          const registry = new Registry(provider);
+          let metaData = {};
+          registry
+            .get(contract.contractAddress)
+            .then(metaData => {
+              res.send({
+                premium: contract.premium || false,
+                contractName: contract.contractName,
+                description: contract.description || '',
+                mnemonic: contract.mnemonic,
+                contactInfo: contract.contactInfo || '',
+                colorLight: contract.colorLight || '',
+                colorDark: contract.colorDark || '',
+                instructions: contract.instructions || '',
+                network: contract.network || '',
+                contractAddress: contract.contractAddress || '',
+                creatorAddress: contract.creatorAddress || '',
+                metaData: metaData || '',
+                functions: contract.functions || '',
+                abi: contract.abi || '',
+                backgroundImage: contract.backgroundImage || '',
+                favicon: contract.favicon || '',
+                icon: contract.icon || '',
+                createdAt: contract._id.getTimestamp()
+              });
+            })
+            .catch(e => {
+              console.error('Metadata not accessible');
+              res.send({
+                premium: contract.premium || false,
+                contractName: contract.contractName,
+                description: contract.description || '',
+                mnemonic: contract.mnemonic,
+                contactInfo: contract.contactInfo || '',
+                colorLight: contract.colorLight || '',
+                colorDark: contract.colorDark || '',
+                instructions: contract.instructions || '',
+                network: contract.network || '',
+                contractAddress: contract.contractAddress || '',
+                creatorAddress: contract.creatorAddress || '',
+                metaData: '',
+                functions: contract.functions || '',
+                abi: contract.abi || '',
+                backgroundImage: contract.backgroundImage || '',
+                favicon: contract.favicon || '',
+                icon: contract.icon || '',
+                createdAt: contract._id.getTimestamp()
+              });
+            });
+        } else {
+          console.log(`No contract found`);
+          res.status(404).send(`Contract not found: ${mnemonic}`);
+        }
+      }
+    ).catch(function(err) {
+      console.log(`Contract not found` + err);
+      res.status(404).send(`Contract not found: ${mnemonic}`);
+    });
+  } catch (err) {
     console.log(`Contract not found` + err);
     res.status(404).send(`Contract not found: ${mnemonic}`);
-  });
+  }
 });
-
 app.get('/user/:creatorAddress', (req, res) => {
   var creatorAddress = req.params.creatorAddress.toLowerCase();
   console.log(' ');

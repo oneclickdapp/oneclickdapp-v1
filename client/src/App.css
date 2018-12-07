@@ -8,8 +8,9 @@ body {
 }
 .topMenu {
   background-color: #c2cafc;
-  top: 0;
+  color: #c2cafc;
   position: fixed;
+  top: 0;
   width: 100%;
   z-index: 10;
 }
@@ -17,6 +18,13 @@ body {
   padding-top: 8px;
   top: 0;
   right: 0;
+  position: fixed;
+  z-index: 11;
+}
+.dapparatusMobile {
+  padding-top: 10px;
+  top: 0;
+  right: 1rem;
   position: fixed;
   z-index: 11;
 }
@@ -29,33 +37,48 @@ body {
   width: 100%;
 }
 .defaultHeader {
+  top: 0;
   background: linear-gradient(to bottom, #c2cafc, #ffffff);
+  padding-bottom: 3rem;
 }
 .homePageHeader {
   background: #c2cafc;
   padding-top: 5rem;
   padding-left: 10rem;
-  padding-right: 4rem;
   padding-bottom: 10rem;
+  margin-bottom: 3rem;
+}
+.homePageHeaderMobile {
+  text-align: center;
+  background: #c2cafc;
+  padding-top: 3rem;
+  padding-bottom: 10rem;
+  vertical-align: middle;
 }
 .homePageContent {
+  text-align: center;
   padding-top: 5rem;
-  padding-left: 10rem;
-  padding-right: 4rem;
-  height: 45rem;
+  padding-bottom: 5rem;
+  background: #f4f4f4;
+}
+.homePageContentWhite {
+  text-align: center;
+  padding-bottom: 5rem;
+  padding-top: 5rem;
+  background: #ffffff;
 }
 .content {
   flex: 1;
 }
 .progressBar {
   width: 100%;
-  z-index: 10;
+  z-index: 9;
   position: fixed;
   opacity: 0.7;
   padding-top: 1rem;
 }
 .dappForm {
-  padding-top: 2rem;
+  padding-top: 3rem;
   padding-bottom: 5rem;
 }
 .dappFormOption {
@@ -63,7 +86,7 @@ body {
   padding-top: 1rem;
   padding-bottom: 2rem;
   height: 100%;
-  background: linear-gradient(to bottom, #c2cafc, #ffffff);
+  background: linear-gradient(to bottom, #ededed, #ffffff);
 }
 .dappList {
   overflow: auto;
@@ -81,6 +104,14 @@ body {
   animation: colorChange 2s infinite;
   padding-bottom: 8em;
   padding-top: 8em;
+  margin-top: 0;
+  top: 0;
+}
+.dAppNotFound {
+  text-align: center;
+  background: #c2cafc;
+  padding-bottom: 8em;
+  padding-top: 2em;
   margin-top: 0;
   top: 0;
 }

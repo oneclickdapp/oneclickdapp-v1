@@ -14,11 +14,9 @@ import {
   Popup,
   Container,
   Modal,
-  Reveal,
   Table,
   Image,
   List,
-  Transition,
   Search,
   Responsive,
   Visibility,
@@ -30,7 +28,7 @@ import {
 import {
   Dapparatus,
   Gas,
-  ContractLoader,
+  // ContractLoader,
   // Transactions,
   // Events,
   // Scaler,
@@ -47,35 +45,40 @@ import _ from 'lodash';
 // import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
 import PropTypes from 'prop-types';
 import { TwitterShareButton } from 'react-share';
-var ENS = require('ethereum-ens');
+// var ENS = require('ethereum-ens');
 const axios = require('axios');
 // Dapparatus
 const METATX = {
-  endpoint: 'http://0.0.0.0:10001/',
+  endpoint: 'http://0.0.0.0:1001/',
   contract: '0xf5bf6541843D2ba2865e9aeC153F28aaD96F6fbc'
   // accountGenerator: '//account.metatx.io'
 };
-const WEB3_PROVIDER = '';
+const WEB3_PROVIDER = 'https://ropsten.infura.io/UkZfSHYlZUsRnBPYPjTO';
 // image assets
-const chelseaHello = require('./assets/chelsea-hello.png');
+// const chelseaHello = require('./assets/chelsea-hello.png');
 const tablet = require('./assets/tablet.png');
 const castle = require('./assets/castle.png');
 const shield = require('./assets/shield.png');
 const tent = require('./assets/tent.png');
 const twitter = require('./assets/twitter.png');
 const details = require('./assets/details.png');
-const instructions = require('./assets/instructions.png');
 const chiselProcess = require('./assets/chisel-process.png');
 const market = require('./assets/market.png');
 const treasure = require('./assets/treasure.png');
 const clone = require('./assets/copy.png');
 const pen = require('./assets/pen.png');
 const user = require('./assets/user.png');
-const ethereumSmall = require('./assets/ethereum-small.png');
+const ethereum = require('./assets/ethereum.png');
 const clock = require('./assets/clock.png');
 const github = require(`./assets/github.png`);
 const question = require(`./assets/question.png`);
 const backgroundImage = require(`./assets/backgroundImage.png`);
+const share = require(`./assets/share.png`);
+const deployment = require(`./assets/deployment.png`);
+const exampleBeauty = require(`./assets/exampleBeauty.png`);
+const exampleMobile = require(`./assets/exampleMobile.png`);
+const ensipfs = require(`./assets/ensipfs.png`);
+const chelsea = require(`./assets/chelsea.png`);
 
 class App extends Component {
   constructor(props) {
@@ -84,6 +87,7 @@ class App extends Component {
       abi: '',
       abiRaw: '',
       network: '',
+      requiredNetwork: '',
       contractAddress: '',
       getDappData: '',
       errorMessage: false,
@@ -136,6 +140,13 @@ class App extends Component {
 
   getDappData = () => {
     const mnemonic = window.location.pathname;
+    if (mnemonic === '/new' || mnemonic === '/new/') {
+      this.getRecentPublicContracts();
+      this.getExternalContracts();
+      this.getExistingSubnodes();
+      this.setState({ currentDappFormStep: 1, enableDapparatus: true });
+      return true;
+    }
     if (mnemonic.length > 1) {
       this.showLoading('downloading');
       this.setState({
@@ -144,12 +155,14 @@ class App extends Component {
       axios
         .get(`/contracts${mnemonic}`)
         .then(result => {
+          // console.log(result);
           this.handleChangeABI(
             {},
             { value: JSON.stringify(result.data.abi) || '' }
           );
           document.title = `oneclickdapp: ${result.data.contractName}`;
           this.setState({
+            requiredNetwork: [result.data.network] || '',
             network: [result.data.network] || '',
             dappName: result.data.contractName || '',
             contractAddress: result.data.contractAddress || '',
@@ -178,8 +191,9 @@ class App extends Component {
             }
           });
         })
-        .catch(function(err) {
-          console.log(err);
+        .catch(e => {
+          console.log(`Could not find a dApp for ${mnemonic}`);
+          this.showLoading('not found');
         });
       return true;
     } else {
@@ -541,6 +555,27 @@ class App extends Component {
       this.setState({ errorMessage: err.message });
     }
   };
+  handleCreateNewDapp = () => {
+    this.setState({
+      currentDappFormStep: 1,
+      enableDapparatus: true
+    });
+    window.scrollTo(0, 0);
+  };
+  handleSubmitEmail = () => {
+    axios
+      .post(`/emails`, {
+        email: this.state.email
+      })
+      .then(
+        this.setState({
+          emailSubmitted: true
+        })
+      )
+      .catch(err => {
+        console.log(err);
+      });
+  };
 
   showErrorMessage = type => {
     let message = <div />;
@@ -558,6 +593,7 @@ class App extends Component {
             }}
           >
             <Message
+              style={{ zIndex: 12 }}
               size="large"
               error
               onDismiss={() => this.setState({ errorMessage: false })}
@@ -569,6 +605,7 @@ class App extends Component {
       } else {
         message = (
           <Message
+            style={{ zIndex: 12 }}
             attached="top"
             error
             header="Oops!"
@@ -601,6 +638,33 @@ class App extends Component {
           </Icon.Group>
           <Header as="h2">Building your dApp...</Header>
           <Image centered src={chiselProcess} size="huge" />
+        </div>
+      );
+    } else if (action === 'not found') {
+      loading = (
+        <div className="dAppNotFound">
+          <Container>
+            <Grid stackable columns={2}>
+              <Grid.Column>
+                <Icon size="huge" name="ban" />
+                <Header as="h2">Sorry, I couldn't find this dApp.</Header>
+                <br />
+                <br />
+                <br />
+                <Button
+                  color="green"
+                  size="huge"
+                  icon="plus"
+                  content="Create a new dApp"
+                  as="a"
+                  href="http://oneclickdapp.com/new"
+                />
+              </Grid.Column>
+              <Grid.Column>
+                <Image centered src={chelsea} size="small" />
+              </Grid.Column>
+            </Grid>
+          </Container>
         </div>
       );
     }
@@ -665,107 +729,243 @@ class App extends Component {
     );
   }
   renderDappForm() {
-    const { currentDappFormStep, displayLoading } = this.state;
+    const { currentDappFormStep } = this.state;
     const errorMessage = this.showErrorMessage();
     let formDisplay = [];
 
-    if (displayLoading) {
-      formDisplay = displayLoading;
-    } else if (currentDappFormStep < 1) {
+    if (currentDappFormStep < 1) {
       formDisplay = (
         <div>
-          <div className="homePageHeader">
-            <Grid stackable columns={2} verticalAlign="middle">
-              <Grid.Column textAlign="left">
-                <p style={{ fontSize: '4em' }}>Instant, Secure, Simple.</p>
-                <p style={{ fontSize: '1.5em' }}>
-                  Turn your smart contract into a customizable, easy-to-use
-                  dApp.
-                </p>
-                <Divider hidden />
-                <Grid.Column textAlign="center">
-                  <Button
-                    primary
-                    size="huge"
-                    content="Create a dApp for free"
-                    onClick={() => {
-                      this.setState({
-                        currentDappFormStep: 1,
-                        enableDapparatus: true
-                      });
-                    }}
-                  />
-                  <br />
-                  login using your wallet
+          <Responsive minWidth={Responsive.onlyTablet.minWidth}>
+            <div className="homePageHeader">
+              <Grid stackable columns={2} verticalAlign="middle">
+                <Grid.Column textAlign="left">
+                  <p style={{ fontSize: '4em' }}>Instant, Simple, Secure.</p>
+                  <p style={{ fontSize: '1.5em', width: '90%' }}>
+                    Turn your smart contract into a customizable, easy-to-use
+                    dApp.
+                  </p>
+                  <Divider hidden />
+                  <Grid.Column>
+                    <Button
+                      primary
+                      size="huge"
+                      content="Create a dApp for free"
+                      onClick={this.handleCreateNewDapp}
+                    />
+                  </Grid.Column>
                 </Grid.Column>
-              </Grid.Column>
-              <Grid.Column>
-                <Image src={tablet} />
-              </Grid.Column>
-            </Grid>
-          </div>
-          <div className="homePageContent">
-            <Grid>
-              <Grid.Row>
                 <Grid.Column>
-                  <div style={{ paddingBottom: 30 }}>
-                    <Image centered size="huge" src={instructions} />
-                  </div>
+                  <Image src={tablet} />
+                </Grid.Column>
+              </Grid>
+            </div>
+          </Responsive>
+          <Responsive maxWidth={Responsive.onlyMobile.maxWidth}>
+            <div className="homePageHeaderMobile">
+              <p style={{ fontSize: '3em' }}>Instant, Simple, Secure.</p>
+              <p style={{ fontSize: '1.5em' }}>
+                Turn your smart contract into a customizable, easy-to-use dApp.
+              </p>
+              <Image centered src={tablet} size="small" />
+              <br />
+              <br />
+              <Button
+                primary
+                size="huge"
+                content="Create a dApp for free"
+                onClick={() => {
+                  this.setState({
+                    currentDappFormStep: 1,
+                    enableDapparatus: true
+                  });
+                }}
+              />
+              <p>(mobile-friendly)</p>
+            </div>
+          </Responsive>
+          <div className="homePageContent">
+            <Grid container columns={3} stackable>
+              <Grid.Row verticalAlign="middle">
+                <Grid.Column>
+                  <Image centered size="medium" src={deployment} />
+                  <h1>1. Deploy</h1>
+                  <br />
+                  <h3>
+                    Deploy your smart contract to any network using{' '}
+                    <a
+                      href="http://remix.ethereum.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Remix
+                    </a>
+                    ,{' '}
+                    <a
+                      href="https://github.com/austintgriffith/clevis"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Clevis
+                    </a>
+                    , or{' '}
+                    <a
+                      href="https://truffleframework.com/tutorials/pet-shop"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Truffle
+                    </a>
+                    .
+                  </h3>
+                </Grid.Column>
+                <Grid.Column>
+                  <Image centered size="small" src={details} />
+                  <h1>2. Choose</h1>
+                  <br />
+                  <h3>
+                    Enter your ABI, network, and select your customizations.
+                  </h3>
+                </Grid.Column>
+                <Grid.Column textAlign="center">
+                  <Image centered size="small" src={share} />
+                  <h2>
+                    oneclickdapp.com/<i>{'<your-dapp>'}</i>
+                  </h2>
+                  <h1>3. Use</h1>
+                  <br />
+                  <h3>Use and share your dApp at a custom URL.</h3>
                 </Grid.Column>
               </Grid.Row>
             </Grid>
-            <ol>
-              <li>
-                Deploy your smart contract using{' '}
-                <a
-                  href="http://remix.ethereum.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Remix
-                </a>
-                ,{' '}
-                <a
-                  href="https://github.com/austintgriffith/clevis"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Clevis
-                </a>
-                , or{' '}
-                <a
-                  href="https://truffleframework.com/tutorials/pet-shop"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Truffle.
-                </a>
-              </li>
-              <li>
-                Enter the
-                <a
-                  href="https://solidity.readthedocs.io/en/latest/abi-spec.html?highlight=abi#handling-tuple-types"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {' '}
-                  ABI
-                </a>
-                , network, and a name.
-              </li>
-              <li>Choose a security level (high/low).</li>
-            </ol>
-            <Header>
-              <a
-                href="http://oneclickdapp.com/metal-gelatin"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                oneclickdapp.com/metal-gelatin
-              </a>
-            </Header>
+          </div>
+          <div className="homePageContentWhite">
+            <Container>
+              <Grid stackable columns={2}>
+                <Grid.Row textAlign="left" verticalAlign="middle">
+                  <Grid.Column>
+                    <h1>Clean and simple interface.</h1>
+                    <h3>
+                      Customize the look of your dApp and choose which functions
+                      to display. Guide your users through each function with
+                      helpful icons and instructions.
+                    </h3>
+                  </Grid.Column>
+                  <Grid.Column>
+                    <Image src={exampleBeauty} />
+                  </Grid.Column>
+                </Grid.Row>
+                <Divider />
+                <Grid.Row textAlign="left" verticalAlign="middle">
+                  <Grid.Column>
+                    <Image src={exampleMobile} size="large" />
+                  </Grid.Column>
+                  <Grid.Column>
+                    <h1>Desktop and mobile-ready.</h1>
+                    <h3>
+                      Access your dApp on any device, and use your favorite
+                      ethereum wallet to sign transactions.
+                    </h3>
+                  </Grid.Column>
+                </Grid.Row>
+                <Divider />
+                <Grid.Row textAlign="left" verticalAlign="middle">
+                  <Grid.Column>
+                    <h1>Secured with ENS and IPFS.</h1>
+                    <h3>
+                      Each dApp is protected using a unique ENS subdomain linked
+                      to your IPFS data. Are you a cypher-punk or
+                      crypto-anarchist who
+                      <i>rejects centralization whenever possible</i>? We salute
+                      you! Your dApp can be accessed directly from your own IPFS
+                      node to avoid DNS and other intermediaries altogether.
+                    </h3>
+                  </Grid.Column>
+                  <Grid.Column>
+                    <Image src={ensipfs} />
+                  </Grid.Column>
+                </Grid.Row>
+              </Grid>
+            </Container>
+          </div>
+          <div className="homePageContent">
+            <h1>No token. No credit cards. No bullshit.</h1>
+            <h3>Subscribe using DAI stable-coin</h3>
             <br />
-            Bookmark and share with a friend!
+            <Grid
+              container
+              columns={2}
+              stackable
+              divided
+              verticalAlign="top"
+              textAlign="center"
+            >
+              <Grid.Column>
+                <h1>Free</h1>
+                <Image centered size="small" src={tent} />
+                <h3>
+                  <Icon name="linkify" />
+                  Unique URL
+                  <br />
+                  <Icon name="clock" />
+                  30s or less
+                  <br />
+                  Noob-friendly
+                </h3>
+                <Button
+                  size="huge"
+                  icon="lightning"
+                  color="green"
+                  onClick={this.handleCreateNewDapp}
+                  content="Create dApp"
+                />
+              </Grid.Column>
+              <Grid.Column>
+                <h1>Premium ($5/month)</h1>
+                <Image centered size="small" src={castle} />
+                <h3>
+                  <Icon name="paint brush" />
+                  Customizable
+                  <br />
+                  <Icon name="cloud" />
+                  ENS + IPFS hosted
+                  <br />
+                  <Icon name="dashboard" />
+                  Usage data
+                </h3>
+                <Button
+                  size="huge"
+                  icon="eye"
+                  color="blue"
+                  as="a"
+                  content="See an example"
+                  href="http://oneclickdapp.com/cryptokitties"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              </Grid.Column>
+            </Grid>
+          </div>
+          <div className="homePageContentWhite">
+            <h1>Want a Premium dApp sooner?</h1>
+            <h3>Submit your email and we'll contact you</h3>
+            <Form
+              success={this.state.emailSubmitted}
+              onSubmit={this.handleSubmitEmail}
+            >
+              <Form.Input
+                inline
+                name="email"
+                label="email"
+                onChange={this.handleChange}
+              />
+              <Message
+                success
+                header="Excellent!"
+                content="You're all signed up"
+              />
+              <Button content="submit" secondary />
+            </Form>
           </div>
         </div>
       );
@@ -963,69 +1163,96 @@ class App extends Component {
           <div className="dappForm">
             <Image size="small" centered src={shield} />
             <Header as="h2" textAlign="center">
-              Choose your Security
+              Fortify your dApp
             </Header>
             <div className="dappFormOption">
               <Grid
-                stackable
+                container
                 columns={2}
-                divided
-                verticalAlign="bottom"
+                stackable
+                verticalAlign="top"
                 textAlign="center"
               >
-                <Grid.Column>
-                  <Image centered size="tiny" src={tent} />
-                  <Header as="h2">
-                    Low
-                    <Header.Subheader>
+                <Grid.Row>
+                  <Grid.Column>
+                    <h1>Free</h1>
+                    <Image centered size="small" src={tent} />
+                    <h3>
+                      <Icon name="linkify" />
                       Unique URL
                       <br />
-                      Instant
+                      <Icon name="clock" />
+                      30s or less
                       <br />
-                      Free
-                    </Header.Subheader>
-                  </Header>
-                  <Button
-                    size="huge"
-                    icon="lightning"
-                    color="green"
-                    onClick={this.generateDapp}
-                    content="Create dApp"
-                  />
-                </Grid.Column>
-                <Grid.Column>
-                  <Image centered size="small" src={castle} />
-                  <Header as="h2">
-                    High (coming soon)
-                    <Header.Subheader>
-                      <Icon name="world" />
-                      Custom Ethereum Name Service URL
+                      Noob-friendly
+                    </h3>
+                    <Button
+                      size="huge"
+                      icon="lightning"
+                      color="green"
+                      onClick={this.generateDapp}
+                      content="Create dApp"
+                    />
+                  </Grid.Column>
+                  <Divider vertical>OR</Divider>
+                  <Grid.Column>
+                    <h1>Premium</h1>
+                    <Image centered size="small" src={castle} />
+                    <h3>
+                      <Icon name="paint brush" />
+                      Customizable
                       <br />
-                      Permanent IPFS storage
+                      <Icon name="cloud" />
+                      ENS + IPFS hosted
                       <br />
-                      <Icon name="dollar" />
-                      Pay what you want
-                    </Header.Subheader>
-                  </Header>
-                  <Button
-                    disabled
-                    size="huge"
-                    icon="lock"
-                    color="green"
-                    onClick={() => this.setState({ currentDappFormStep: 4 })}
-                    content="Create dApp"
-                  />
-                </Grid.Column>
+                      <Icon name="dashboard" />
+                      Usage data
+                    </h3>
+                    <Button
+                      size="huge"
+                      icon="eye"
+                      color="blue"
+                      as="a"
+                      content="See an example"
+                      href="http://oneclickdapp.com/cryptokitties"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                    <br />
+                    $5/month in DAI
+                  </Grid.Column>
+                </Grid.Row>
               </Grid>
             </div>
-            <Navigation
-              className="navigationButton"
-              step={currentDappFormStep}
-              direction="left"
-              onUpdate={state => {
-                this.setState({ currentDappFormStep: 2 });
-              }}
-            />
+            <div className="homePageContentWhite">
+              <h1>Want a Premium dApp sooner?</h1>
+              <h3>Submit your email and we'll contact you</h3>
+              <Form
+                success={this.state.emailSubmitted}
+                onSubmit={this.handleSubmitEmail}
+              >
+                <Form.Input
+                  inline
+                  name="email"
+                  label="email"
+                  onChange={this.handleChange}
+                />
+                <Message
+                  success
+                  header="Excellent!"
+                  content="You're all signed up"
+                />
+                <Button content="submit" secondary />
+              </Form>
+              <Navigation
+                className="navigationButton"
+                step={currentDappFormStep}
+                direction="left"
+                onUpdate={state => {
+                  this.setState({ currentDappFormStep: 2 });
+                }}
+              />
+            </div>
           </div>
         </Container>
       );
@@ -1108,7 +1335,7 @@ class App extends Component {
     const { recentContracts } = this.state;
     return (
       <div>
-        <Image centered src={market} size="tiny" />
+        <Image centered src={market} size="small" />
         <Header textAlign="center" as="h3" icon>
           Recent Public dApps
         </Header>
@@ -1124,7 +1351,7 @@ class App extends Component {
                     <Image src={user} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
-                    <Image src={ethereumSmall} size="mini" centered />
+                    <Image src={ethereum} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
                     <Image src={clock} size="mini" centered />
@@ -1183,7 +1410,7 @@ class App extends Component {
                     <Image src={pen} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
-                    <Image src={ethereumSmall} size="mini" centered />
+                    <Image src={ethereum} size="mini" centered />
                   </Table.HeaderCell>
                   <Table.HeaderCell>
                     <Image src={clock} size="mini" centered />
@@ -1340,19 +1567,24 @@ class App extends Component {
               );
             });
             forms.push(
-              <Segment textAlign="left" key={i}>
-                <Header textAlign="center">
-                  {method.name}
-                  <Header.Subheader>View</Header.Subheader>
-                </Header>
+              <Segment
+                textAlign="left"
+                key={i}
+                // style={{ position: 'absolute' }}
+              >
                 <Form
                   onSubmit={this.handleSubmitCall}
                   name={method.name}
                   key={i}
                 >
-                  <Button floated="right" icon>
-                    <Icon name="refresh" />
-                  </Button>
+                  <Header textAlign="center">
+                    {method.name}
+                    <Header.Subheader>View</Header.Subheader>
+                  </Header>
+                  <Button
+                    style={{ position: 'absolute', top: 10, left: 5 }}
+                    icon="refresh"
+                  />
                   {methodInputs}
                   {methodOutputs}
                 </Form>
@@ -1367,7 +1599,6 @@ class App extends Component {
     return <div>{forms}</div>;
   }
   renderInterface() {
-    const { network, dappData } = this.state;
     const errorMessage = this.showErrorMessage('popup');
     return (
       <div>
@@ -1399,7 +1630,6 @@ class App extends Component {
     );
   }
   renderPremiumFunctions(methodName, helperText, colorDark) {
-    let displayMethod = <div>Loading method from ABI...</div>;
     if (this.state.abi) {
       try {
         const methodIndex = this.state.methodData.findIndex(
@@ -1481,7 +1711,7 @@ class App extends Component {
             outputs.push(
               <div key={j}>
                 {output.name || '(unnamed)'} <i>{output.type}</i>:
-                <Container>
+                <Container style={{ wordWrap: 'break-word' }}>
                   <b>{outputData || ' '}</b>
                 </Container>
               </div>
@@ -1524,7 +1754,7 @@ class App extends Component {
     }
   }
   renderPremiumInterface() {
-    const { network, metaData, dappData, activeIndex } = this.state;
+    const { dappData, activeIndex } = this.state;
     const errorMessage = this.showErrorMessage('popup');
     let displayPremiumInterface = [];
     if (dappData.functions) {
@@ -1596,8 +1826,7 @@ class App extends Component {
       block,
       avgBlockTime,
       etherscan,
-      network,
-      dappData,
+
       displayDappForm,
       displayLoading,
       enableDapparatus
@@ -1672,23 +1901,27 @@ class App extends Component {
       // }
       connectedDisplay.push(
         // Simple UI tweak for TransactionsCustom
-        <TransactionsCustom
+        <Responsive
           key="Transactions"
-          config={{ DEBUG: false }}
-          account={account}
-          gwei={gwei}
-          web3={web3}
-          block={block}
-          avgBlockTime={avgBlockTime}
-          etherscan={etherscan}
-          onReady={state => {
-            console.log('Transactions component is ready:', state);
-            this.setState(state);
-          }}
-          onReceipt={(transaction, receipt) => {
-            console.log('Transaction Receipt', transaction, receipt);
-          }}
-        />
+          minWidth={Responsive.onlyTablet.minWidth}
+        >
+          <TransactionsCustom
+            config={{ DEBUG: false }}
+            account={account}
+            gwei={gwei}
+            web3={web3}
+            block={block}
+            avgBlockTime={avgBlockTime}
+            etherscan={etherscan}
+            onReady={state => {
+              console.log('Transactions component is ready:', state);
+              this.setState(state);
+            }}
+            onReceipt={(transaction, receipt) => {
+              console.log('Transaction Receipt', transaction, receipt);
+            }}
+          />
+        </Responsive>
       );
     }
     let dapparatus;
@@ -1697,8 +1930,7 @@ class App extends Component {
         <Dapparatus
           config={{
             DEBUG: false,
-            network: network,
-            metatxAccountGenerator: false,
+            requiredNetwork: this.state.requiredNetwork,
             hide: displayDappForm,
             textStyle: {
               color: '#000000'
@@ -1708,7 +1940,8 @@ class App extends Component {
               color: '#d31717'
             },
             blockieStyle: {
-              size: 5
+              size: 5,
+              top: 0
             }
           }}
           metatx={METATX}
@@ -1772,7 +2005,7 @@ class DesktopContainer extends Component {
 
   render() {
     const { children, dapparatus, dappData } = this.props;
-    const { fixed } = this.state;
+
     return (
       <Responsive minWidth={Responsive.onlyTablet.minWidth}>
         <Visibility
@@ -1781,11 +2014,14 @@ class DesktopContainer extends Component {
           onBottomPassedReverse={this.hideFixedMenu}
         >
           <Menu borderless size="huge">
-            <Menu.Menu className="topMenu">
+            <Menu.Menu
+              className="topMenu"
+              style={{ backgroundColor: dappData.colorLight }}
+            >
               <Menu.Item as="a" href="http://oneclickdapp.com">
                 One Click dApp
               </Menu.Item>
-              <Menu.Item as="a" href="http://oneclickdapp.com">
+              <Menu.Item as="a" href="http://oneclickdapp.com/new">
                 <Icon name="plus" /> New
               </Menu.Item>
               <Menu.Item>
@@ -1846,14 +2082,17 @@ class MobileContainer extends Component {
           <Sidebar
             as={Menu}
             animation="uncover"
-            inverted
             vertical
+            inverted
             pointing
+            borderless
             visible={sidebarOpened}
-            className="menu"
           >
             <Menu.Item as="a" href="http://oneclickdapp.com">
-              Create
+              Home
+            </Menu.Item>
+            <Menu.Item as="a" href="http://oneclickdapp.com/new">
+              New
             </Menu.Item>
             <Menu.Item
               as="a"
@@ -1881,19 +2120,21 @@ class MobileContainer extends Component {
               Let us know in the chat at the bottom-right.
             </Menu.Item>
           </Sidebar>
-
           <Sidebar.Pusher
             dimmed={sidebarOpened}
             onClick={this.handlePusherClick}
             style={{ minHeight: '100vh' }}
           >
-            <Menu inverted size="large">
-              <Menu.Item onClick={this.handleToggle}>
-                <Icon name="sidebar" />
-              </Menu.Item>
-              <Menu.Menu position="right" style={{ paddingTop: 9 }}>
-                {dapparatus}
+            <Menu borderless size="large">
+              <Menu.Menu
+                className="topMenu"
+                style={{ backgroundColor: dappData.colorLight }}
+              >
+                <Menu.Item onClick={this.handleToggle}>
+                  <Icon name="sidebar" />
+                </Menu.Item>
               </Menu.Menu>
+              <div className="dapparatusMobile">{dapparatus}</div>
             </Menu>
             <Heading mobile dappData={dappData} />
             {children}
@@ -1912,8 +2153,8 @@ const Heading = ({ mobile, dappData }) => {
   link.rel = 'shortcut icon';
   link.href = dappData.favicon;
   document.getElementsByTagName('head')[0].appendChild(link);
-  document.body.style.backgroundImage = `url(${backgroundImage})`;
-  document.body.style.backgroundAttachment = 'fixed';
+  document.body.style.background = '#c2cafc';
+  // document.body.style.backgroundAttachment = 'fixed';
 
   if (dappData.premium) {
     const etherscan = translateEtherscan(dappData.network);
@@ -1929,7 +2170,7 @@ const Heading = ({ mobile, dappData }) => {
     }
     let headerStyle = {
       // set default header background
-      backgroundImage: `url(${backgroundImage})`,
+      backgroundImage: ``,
       backgroundAttachment: 'fixed',
       backgroundSize: 'cover',
       backgroundRepeat: 'repeat-x'
@@ -1939,14 +2180,14 @@ const Heading = ({ mobile, dappData }) => {
       headerStyle.backgroundImage = `url(${dappData.backgroundImage})`;
     }
     return (
-      <Segment style={headerStyle}>
+      <div className="defaultHeader" style={headerStyle}>
         <Header
           as="h1"
           content={dappData.dappName}
           style={{
             fontSize: mobile ? '2em' : '4em',
             fontWeight: 'normal',
-            marginTop: mobile ? '1em' : '1em',
+            paddingTop: mobile ? '1em' : '1em',
             color: dappData.colorDark
           }}
         />
@@ -1977,13 +2218,13 @@ const Heading = ({ mobile, dappData }) => {
             <Modal.Description>{dappData.instructions}</Modal.Description>
           </Modal.Content>
         </Modal>
-      </Segment>
+      </div>
     );
   } else if (dappData) {
     const etherscan = translateEtherscan(dappData.network);
     const displayRegistryData = getRegistryData(
-      dappData.network,
-      dappData.metaData
+      dappData.metaData,
+      dappData.network
     );
     return (
       <div className="defaultHeader">
@@ -2022,7 +2263,7 @@ const Heading = ({ mobile, dappData }) => {
                 <Table.Body>
                   <Table.Row>
                     <Table.Cell>
-                      <Image src={ethereumSmall} size="mini" centered />
+                      <Image src={ethereum} size="mini" centered />
                     </Table.Cell>
                     <Table.Cell>
                       <b>{dappData.network}</b>
@@ -2053,14 +2294,6 @@ const Heading = ({ mobile, dappData }) => {
                     </Table.Cell>
                     <Table.Cell>
                       oneclickdapp.com<b>{dappData.mnemonic || '/ ...'}</b>
-                      <br />
-                      <i>
-                        (press{' '}
-                        {navigator.userAgent.toLowerCase().indexOf('mac') !== -1
-                          ? 'Command/Cmd'
-                          : 'CTRL'}{' '}
-                        + D to Bookmark)
-                      </i>
                     </Table.Cell>
                   </Table.Row>
                 </Table.Body>
@@ -2104,19 +2337,16 @@ function translateEtherscan({ network }) {
   }
   return etherscan;
 }
-function getRegistryData({ metaData, network }) {
+function getRegistryData(metaData, network) {
   let registryData = '(available only on mainnet)';
   if (metaData && metaData.data) {
     registryData = (
       <div>
-        Metadata:
         <Popup
           hoverable
-          flowing
-          keepInViewPort
-          position="bottom left"
           trigger={
-            <Button
+            <Segment
+              compact
               size="tiny"
               onClick={() => {
                 window.open(metaData.data.metadata.url, '_blank');
@@ -2124,59 +2354,55 @@ function getRegistryData({ metaData, network }) {
             >
               <Image inline size="mini" src={metaData.data.metadata.logo} />
               {metaData.name}
-            </Button>
+            </Segment>
           }
         >
-          <Container>
-            <Table definition collapsing>
-              <Table.Body>
-                <Table.Row>
-                  <Table.Cell>Description</Table.Cell>
-                  <Table.Cell>{metaData.data.metadata.description}</Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Verified</Table.Cell>
-                  <Table.Cell>
-                    {JSON.stringify(metaData.data.metadata.reputation.verified)}
-                  </Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Status</Table.Cell>
-                  <Table.Cell>
-                    {metaData.data.metadata.reputation.status}
-                  </Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Category</Table.Cell>
-                  <Table.Cell>
-                    {metaData.data.metadata.reputation.category}
-                  </Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Self attested</Table.Cell>
-                  <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Curated</Table.Cell>
-                  <Table.Cell>{metaData.curated.toString()}</Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Cell>Scam info</Table.Cell>
-                  <Table.Cell>
-                    {JSON.stringify(metaData.data.scamdb)}
-                  </Table.Cell>
-                </Table.Row>
-              </Table.Body>
-            </Table>
-            Metadata powered by{' '}
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href="https://ethregistry.org/"
-            >
-              Eth Registry
-            </a>
-          </Container>
+          <Table definitioncollapsing>
+            <Table.Body>
+              <Table.Row>
+                <Table.Cell>Description</Table.Cell>
+                <Table.Cell>{metaData.data.metadata.description}</Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell>Verified</Table.Cell>
+                <Table.Cell>
+                  {JSON.stringify(metaData.data.metadata.reputation.verified)}
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell>Status</Table.Cell>
+                <Table.Cell>
+                  {metaData.data.metadata.reputation.status}
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell>Category</Table.Cell>
+                <Table.Cell>
+                  {metaData.data.metadata.reputation.category}
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell>Self attested</Table.Cell>
+                <Table.Cell>{metaData.self_attested.toString()}</Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell>Curated</Table.Cell>
+                <Table.Cell>{metaData.curated.toString()}</Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell>Scam info</Table.Cell>
+                <Table.Cell>{JSON.stringify(metaData.data.scamdb)}</Table.Cell>
+              </Table.Row>
+            </Table.Body>
+          </Table>
+          Metadata powered by{' '}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://ethregistry.org/"
+          >
+            Eth Registry
+          </a>
         </Popup>
       </div>
     );
