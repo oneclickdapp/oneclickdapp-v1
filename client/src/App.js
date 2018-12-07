@@ -920,6 +920,7 @@ class App extends Component {
                   content="Create dApp"
                 />
               </Grid.Column>
+
               <Grid.Column>
                 <h1>Premium ($5/month)</h1>
                 <Image centered size="small" src={castle} />
@@ -933,39 +934,55 @@ class App extends Component {
                   <Icon name="dashboard" />
                   Usage data
                 </h3>
-                <Button
-                  size="huge"
-                  icon="eye"
-                  color="blue"
-                  as="a"
-                  content="See an example"
+                <Modal
+                  centered
+                  size="small"
+                  dimmer="inverted"
+                  closeIcon
+                  trigger={
+                    <Button
+                      icon="send"
+                      content="Contact us"
+                      size="huge"
+                      color="blue"
+                    />
+                  }
+                >
+                  <Modal.Header>
+                    Submit your email and we'll contact you
+                  </Modal.Header>
+                  <Modal.Content>
+                    <Modal.Description>
+                      <Form
+                        success={this.state.emailSubmitted}
+                        onSubmit={this.handleSubmitEmail}
+                      >
+                        <Form.Input
+                          inline
+                          name="email"
+                          label="email"
+                          onChange={this.handleChange}
+                        />
+                        <Message
+                          success
+                          header="Excellent!"
+                          content="You're all signed up"
+                        />
+                        <Button content="submit" secondary />
+                      </Form>
+                    </Modal.Description>
+                  </Modal.Content>
+                </Modal>
+                <br />
+                <a
                   href="http://oneclickdapp.com/cryptokitties"
                   target="_blank"
                   rel="noopener noreferrer"
-                />
+                >
+                  See an example
+                </a>
               </Grid.Column>
             </Grid>
-          </div>
-          <div className="homePageContentWhite">
-            <h1>Want a Premium dApp sooner?</h1>
-            <h3>Submit your email and we'll contact you</h3>
-            <Form
-              success={this.state.emailSubmitted}
-              onSubmit={this.handleSubmitEmail}
-            >
-              <Form.Input
-                inline
-                name="email"
-                label="email"
-                onChange={this.handleChange}
-              />
-              <Message
-                success
-                header="Excellent!"
-                content="You're all signed up"
-              />
-              <Button content="submit" secondary />
-            </Form>
           </div>
         </div>
       );
@@ -1196,7 +1213,7 @@ class App extends Component {
                   </Grid.Column>
                   <Divider vertical>OR</Divider>
                   <Grid.Column>
-                    <h1>Premium</h1>
+                    <h1>Premium ($5/month)</h1>
                     <Image centered size="small" src={castle} />
                     <h3>
                       <Icon name="paint brush" />
@@ -1208,50 +1225,56 @@ class App extends Component {
                       <Icon name="dashboard" />
                       Usage data
                     </h3>
-                    <Button
-                      size="huge"
-                      icon="eye"
-                      color="blue"
-                      as="a"
-                      content="See an example"
+                    <Modal
+                      centered
+                      size="small"
+                      dimmer="inverted"
+                      closeIcon
+                      trigger={
+                        <Button
+                          icon="send"
+                          content="Contact us"
+                          size="huge"
+                          color="blue"
+                        />
+                      }
+                    >
+                      <Modal.Header>
+                        Submit your email and we'll contact you
+                      </Modal.Header>
+                      <Modal.Content>
+                        <Modal.Description>
+                          <Form
+                            success={this.state.emailSubmitted}
+                            onSubmit={this.handleSubmitEmail}
+                          >
+                            <Form.Input
+                              inline
+                              name="email"
+                              label="email"
+                              onChange={this.handleChange}
+                            />
+                            <Message
+                              success
+                              header="Excellent!"
+                              content="You're all signed up"
+                            />
+                            <Button content="submit" secondary />
+                          </Form>
+                        </Modal.Description>
+                      </Modal.Content>
+                    </Modal>
+                    <br />
+                    <a
                       href="http://oneclickdapp.com/cryptokitties"
                       target="_blank"
                       rel="noopener noreferrer"
-                    />
-                    <br />
-                    $5/month in DAI
+                    >
+                      See an example
+                    </a>
                   </Grid.Column>
                 </Grid.Row>
               </Grid>
-            </div>
-            <div className="homePageContentWhite">
-              <h1>Want a Premium dApp sooner?</h1>
-              <h3>Submit your email and we'll contact you</h3>
-              <Form
-                success={this.state.emailSubmitted}
-                onSubmit={this.handleSubmitEmail}
-              >
-                <Form.Input
-                  inline
-                  name="email"
-                  label="email"
-                  onChange={this.handleChange}
-                />
-                <Message
-                  success
-                  header="Excellent!"
-                  content="You're all signed up"
-                />
-                <Button content="submit" secondary />
-              </Form>
-              <Navigation
-                className="navigationButton"
-                step={currentDappFormStep}
-                direction="left"
-                onUpdate={state => {
-                  this.setState({ currentDappFormStep: 2 });
-                }}
-              />
             </div>
           </div>
         </Container>
