@@ -254,7 +254,7 @@ class App extends Component {
     console.log('Generating unique URL...' + account);
     axios
       .post(`/contracts`, {
-        dappName,
+        contractName: dappName,
         contractAddress,
         abi,
         network: network,
@@ -1642,6 +1642,14 @@ class App extends Component {
         let displayResponse = <div />;
         let displayMethod = <div />;
         let displayButton = <div />;
+        let displayHelperText;
+        if (helperText != '') {
+          displayHelperText = (
+            <Segment style={{ background: colorDark, color: 'white' }}>
+              <i>{helperText}</i>
+            </Segment>
+          );
+        }
         if (method.stateMutability !== 'view' && method.type === 'function') {
           var methodTypeHelperText = 'function without arguments';
           method.inputs.forEach((input, j) => {
@@ -1729,9 +1737,7 @@ class App extends Component {
         }
         displayMethod = (
           <div>
-            <Segment style={{ background: colorDark, color: 'white' }}>
-              <i>{helperText}</i>
-            </Segment>
+            {displayHelperText}
             <Form
               onSubmit={this.handleSubmitCall}
               name={method.name}
@@ -2181,43 +2187,45 @@ const Heading = ({ mobile, dappData }) => {
     }
     return (
       <div className="defaultHeader" style={headerStyle}>
-        <Header
-          as="h1"
-          content={dappData.dappName}
-          style={{
-            fontSize: mobile ? '2em' : '4em',
-            fontWeight: 'normal',
-            paddingTop: mobile ? '1em' : '1em',
-            color: dappData.colorDark
-          }}
-        />
-        <Image centered src={dappData.icon} size="small" />
-        <Header
-          as="h2"
-          content={dappData.description}
-          style={{
-            fontSize: mobile ? '1.5em' : '1.7em',
-            fontWeight: 'normal'
-          }}
-        />
-        <Modal
-          trigger={
-            <Button
-              style={{
-                marginTop: mobile ? '0.5em' : '.1em',
-                background: dappData.colorDark,
-                color: 'white'
-              }}
-            >
-              Show Details
-            </Button>
-          }
-        >
-          <Modal.Header>About {dappData.dappName}</Modal.Header>
-          <Modal.Content image>
-            <Modal.Description>{dappData.instructions}</Modal.Description>
-          </Modal.Content>
-        </Modal>
+        <Container>
+          <Header
+            as="h1"
+            content={dappData.dappName}
+            style={{
+              fontSize: mobile ? '2em' : '4em',
+              fontWeight: 'normal',
+              paddingTop: mobile ? '1em' : '1em',
+              color: dappData.colorDark
+            }}
+          />
+          <Image centered src={dappData.icon} size="small" />
+          <Header
+            as="h2"
+            content={dappData.description}
+            style={{
+              fontSize: mobile ? '1.5em' : '1.7em',
+              fontWeight: 'normal'
+            }}
+          />
+          <Modal
+            trigger={
+              <Button
+                style={{
+                  marginTop: mobile ? '0.5em' : '.1em',
+                  background: dappData.colorDark,
+                  color: 'white'
+                }}
+              >
+                Show Details
+              </Button>
+            }
+          >
+            <Modal.Header>About {dappData.dappName}</Modal.Header>
+            <Modal.Content image>
+              <Modal.Description>{dappData.instructions}</Modal.Description>
+            </Modal.Content>
+          </Modal>
+        </Container>
       </div>
     );
   } else if (dappData) {

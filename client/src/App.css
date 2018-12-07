@@ -116,6 +116,7 @@ body {
   top: 0;
 }
 .function {
+  color: #000000;
   height: 100%;
 }
 @-webkit-keyframes colorChange {
