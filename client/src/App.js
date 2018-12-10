@@ -109,7 +109,7 @@ class App extends Component {
       results: [],
       isLoading: false,
       // Display states
-      currentDappFormStep: 0,
+      currentDappFormStep: 4,
       displayDappForm: true,
       displayLoading: false,
       //new from dapparatus
@@ -1660,6 +1660,7 @@ class App extends Component {
         );
         const abiObject = JSON.parse(this.state.abi);
         const method = abiObject[methodIndex];
+        let onSubmit = this.handleSubmitCall;
         var inputs = [];
         var outputs = [];
         let displayResponse = <div />;
@@ -1675,6 +1676,7 @@ class App extends Component {
         }
         if (method.stateMutability !== 'view' && method.type === 'function') {
           var methodTypeHelperText = 'function without arguments';
+          onSubmit = this.handleSubmitSend;
           method.inputs.forEach((input, j) => {
             methodTypeHelperText = 'function';
             inputs.push(
@@ -1712,7 +1714,6 @@ class App extends Component {
             />
           );
         } else if (method.stateMutability === 'view') {
-          console.log(method);
           method.inputs.forEach((input, j) => {
             inputs.push(
               <Form.Input
@@ -1761,11 +1762,7 @@ class App extends Component {
         displayMethod = (
           <div>
             {displayHelperText}
-            <Form
-              onSubmit={this.handleSubmitCall}
-              name={method.name}
-              key={method.name}
-            >
+            <Form onSubmit={onSubmit} name={method.name} key={method.name}>
               {inputs}
               <Container textAlign="center">
                 {displayButton}
@@ -2034,6 +2031,10 @@ class DesktopContainer extends Component {
 
   render() {
     const { children, dapparatus, dappData } = this.props;
+    let backgroundColor = null;
+    if (dappData.premium) {
+      backgroundColor = dappData.colorLight;
+    }
 
     return (
       <Responsive minWidth={Responsive.onlyTablet.minWidth}>
@@ -2043,10 +2044,7 @@ class DesktopContainer extends Component {
           onBottomPassedReverse={this.hideFixedMenu}
         >
           <Menu borderless size="huge">
-            <Menu.Menu
-              className="topMenu"
-              style={{ backgroundColor: dappData.colorLight }}
-            >
+            <Menu.Menu className="topMenu" style={{ backgroundColor }}>
               <Menu.Item as="a" href="http://oneclickdapp.com">
                 One Click dApp
               </Menu.Item>
@@ -2105,6 +2103,10 @@ class MobileContainer extends Component {
   render() {
     const { children, dapparatus, dappData } = this.props;
     const { sidebarOpened } = this.state;
+    let backgroundColor = null;
+    if (dappData.premium) {
+      backgroundColor = dappData.colorLight;
+    }
     return (
       <Responsive maxWidth={Responsive.onlyMobile.maxWidth}>
         <Sidebar.Pushable>
@@ -2155,10 +2157,7 @@ class MobileContainer extends Component {
             style={{ minHeight: '100vh' }}
           >
             <Menu borderless size="large">
-              <Menu.Menu
-                className="topMenu"
-                style={{ backgroundColor: dappData.colorLight }}
-              >
+              <Menu.Menu className="topMenu" style={{ backgroundColor }}>
                 <Menu.Item onClick={this.handleToggle}>
                   <Icon name="sidebar" />
                 </Menu.Item>

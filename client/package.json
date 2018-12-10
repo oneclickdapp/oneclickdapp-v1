@@ -5,6 +5,7 @@
   "private": true,
   "proxy": "http://localhost:3001/",
   "dependencies": {
+    "0x-instant-component": "^1.0.1",
     "axios": "^0.18.0",
     "clevis": "0.0.104",
     "dapparatus": "^1.0.45",
