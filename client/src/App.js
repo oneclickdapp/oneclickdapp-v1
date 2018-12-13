@@ -109,7 +109,7 @@ class App extends Component {
       results: [],
       isLoading: false,
       // Display states
-      currentDappFormStep: 4,
+      currentDappFormStep: 0,
       displayDappForm: true,
       displayLoading: false,
       //new from dapparatus
@@ -679,20 +679,28 @@ class App extends Component {
         <Grid.Column width={3}>
           <Header inverted as="h4" content={dappData.contactInfo.company} />
           <List link inverted>
-            <List.Item as="a" href={dappData.contactInfo.website}>
-              Website
-            </List.Item>
             <List.Item
               as="a"
-              href={`mailto:${
-                dappData.contactInfo.email
-              }?subject=Question%20about%20"${
-                dappData.dappName
-              }"%20via%20OneClickDapp.com`}
-              target="_self"
+              href={dappData.contactInfo.website}
+              target="_blank"
             >
-              Contact
+              Website
             </List.Item>
+            {dappData.contactInfo.email ? (
+              <List.Item
+                as="a"
+                href={`mailto:${
+                  dappData.contactInfo.email
+                }?subject=Question%20about%20"${
+                  dappData.dappName
+                }"%20via%20OneClickDapp.com`}
+                target="_self"
+              >
+                Contact
+              </List.Item>
+            ) : (
+              <div />
+            )}
           </List>
         </Grid.Column>
       );
@@ -1469,6 +1477,7 @@ class App extends Component {
       </div>
     );
   }
+  // Old interface
   renderSendFunctions() {
     var forms = []; // Each Method gets a form
     if (this.state.abi) {
@@ -1621,6 +1630,38 @@ class App extends Component {
     }
     return <div>{forms}</div>;
   }
+  renderOldInterface() {
+    const errorMessage = this.showErrorMessage('popup');
+    return (
+      <div>
+        <Container
+          style={{
+            paddingTop: '2em',
+            paddingBottom: '5em'
+          }}
+        >
+          <Grid stackable columns={2}>
+            <Grid.Column>
+              <Header>
+                Write functions
+                <Header.Subheader>(must pay transaction fee)</Header.Subheader>
+              </Header>
+              {this.renderSendFunctions()}
+            </Grid.Column>
+            <Grid.Column>
+              <Header>
+                Read functions
+                <Header.Subheader>(free)</Header.Subheader>
+              </Header>
+              {this.renderCallFunctions()}
+            </Grid.Column>
+          </Grid>
+        </Container>
+        {errorMessage}
+      </div>
+    );
+  }
+  // New Interface
   renderInterface() {
     const errorMessage = this.showErrorMessage('popup');
     return (
@@ -1647,6 +1688,72 @@ class App extends Component {
               {this.renderCallFunctions()}
             </Grid.Column>
           </Grid>
+        </Container>
+        {errorMessage}
+      </div>
+    );
+  }
+  renderPremiumInterface() {
+    const { dappData, activeIndex } = this.state;
+    const errorMessage = this.showErrorMessage('popup');
+    let displayPremiumInterface = [];
+    if (dappData.functions) {
+      dappData.functions.forEach((item, index) => {
+        displayPremiumInterface.push(
+          <Accordion
+            as={Card}
+            link
+            raised
+            centered
+            key={index}
+            className="function"
+            style={{ background: dappData.colorLight }}
+          >
+            <Card.Content textAlign="left">
+              <Accordion.Title
+                active={activeIndex.includes(index)}
+                index={index}
+                onClick={this.handleClick}
+              >
+                <Grid columns={2} verticalAlign="middle">
+                  <Grid.Column>
+                    <Icon
+                      size="huge"
+                      circular
+                      name={item.icon}
+                      style={{
+                        background: dappData.colorDark,
+                        color: 'white'
+                        // color: dappData.colorLight
+                      }}
+                    />
+                  </Grid.Column>
+                  <Grid.Column>
+                    <Header>{item.displayName}</Header>
+                  </Grid.Column>
+                </Grid>
+              </Accordion.Title>
+              <Accordion.Content active={activeIndex.includes(index)}>
+                {this.renderPremiumFunctions(
+                  item.name,
+                  item.helperText,
+                  dappData.colorDark
+                )}
+              </Accordion.Content>
+            </Card.Content>
+          </Accordion>
+        );
+      });
+    }
+    return (
+      <div
+        style={{
+          paddingTop: '3em',
+          paddingBottom: '5em'
+        }}
+      >
+        <Container>
+          <Card.Group>{displayPremiumInterface}</Card.Group>
         </Container>
         {errorMessage}
       </div>
@@ -1778,72 +1885,6 @@ class App extends Component {
         return <h2>Error generating function from ABI</h2>;
       }
     }
-  }
-  renderPremiumInterface() {
-    const { dappData, activeIndex } = this.state;
-    const errorMessage = this.showErrorMessage('popup');
-    let displayPremiumInterface = [];
-    if (dappData.functions) {
-      dappData.functions.forEach((item, index) => {
-        displayPremiumInterface.push(
-          <Accordion
-            as={Card}
-            link
-            raised
-            centered
-            key={index}
-            className="function"
-            style={{ background: dappData.colorLight }}
-          >
-            <Card.Content textAlign="left">
-              <Accordion.Title
-                active={activeIndex.includes(index)}
-                index={index}
-                onClick={this.handleClick}
-              >
-                <Grid columns={2} verticalAlign="middle">
-                  <Grid.Column>
-                    <Icon
-                      size="huge"
-                      circular
-                      name={item.icon}
-                      style={{
-                        background: dappData.colorDark,
-                        color: 'white'
-                        // color: dappData.colorLight
-                      }}
-                    />
-                  </Grid.Column>
-                  <Grid.Column>
-                    <Header>{item.displayName}</Header>
-                  </Grid.Column>
-                </Grid>
-              </Accordion.Title>
-              <Accordion.Content active={activeIndex.includes(index)}>
-                {this.renderPremiumFunctions(
-                  item.name,
-                  item.helperText,
-                  dappData.colorDark
-                )}
-              </Accordion.Content>
-            </Card.Content>
-          </Accordion>
-        );
-      });
-    }
-    return (
-      <div
-        style={{
-          paddingTop: '3em',
-          paddingBottom: '5em'
-        }}
-      >
-        <Container>
-          <Card.Group>{displayPremiumInterface}</Card.Group>
-        </Container>
-        {errorMessage}
-      </div>
-    );
   }
   render() {
     let {
@@ -1990,7 +2031,7 @@ class App extends Component {
     } else if (this.state.dappData.premium) {
       mainDisplay = this.renderPremiumInterface();
     } else {
-      mainDisplay = this.renderInterface();
+      mainDisplay = this.renderOldInterface();
     }
     return (
       <div className="App">
@@ -2078,6 +2119,13 @@ class DesktopContainer extends Component {
                   </Dropdown.Menu>
                 </Dropdown>
               </Menu.Item>
+              <Menu.Item
+                as="a"
+                href="mailto:blockchainbuddha@gmail.com?subject=Custom dApp request from OneClickdApp.com"
+                target="_self"
+              >
+                Hire Us
+              </Menu.Item>
             </Menu.Menu>
             <div className="dapparatus">{dapparatus}</div>
           </Menu>
@@ -2142,6 +2190,13 @@ class MobileContainer extends Component {
               image={github}
             >
               Github
+            </Menu.Item>
+            <Menu.Item
+              as="a"
+              href="mailto:blockchainbuddha@gmail.com?subject=Custom dApp request from OneClickdApp.com"
+              target="_self"
+            >
+              Hire Us
             </Menu.Item>
             <Menu.Item header>
               <br />
@@ -2251,7 +2306,7 @@ const Heading = ({ mobile, dappData }) => {
       </div>
     );
   } else if (dappData) {
-    const etherscan = translateEtherscan(dappData.network);
+    const etherscan = translateEtherscan(dappData.network[0]);
     const displayRegistryData = getRegistryData(
       dappData.metaData,
       dappData.network
@@ -2269,7 +2324,7 @@ const Heading = ({ mobile, dappData }) => {
         >
           <Grid.Row verticalAlign="middle">
             <Grid.Column textAlign="center">
-              <Header as="h1">
+              <Header as="h1" style={{ wordWrap: 'break-word' }}>
                 dApp: <b>{dappData.dappName}</b>
               </Header>
               <TwitterShareButton
@@ -2352,17 +2407,17 @@ Heading.propTypes = {
   mobile: PropTypes.bool
 };
 
-function translateEtherscan({ network }) {
+function translateEtherscan(network) {
   let etherscan = 'https://etherscan.io/';
   if (network) {
-    if (network[0] === 'Unknown' || network[0] === 'private') {
+    if (network === 'Unknown' || network === 'private') {
       etherscan = 'http://localhost:8000/#/';
-    } else if (network[0] === 'POA') {
+    } else if (network === 'POA') {
       etherscan = 'https://blockscout.com/poa/core/';
-    } else if (network[0] === 'xDai') {
+    } else if (network === 'xDai') {
       etherscan = 'https://blockscout.com/poa/dai/';
-    } else if (network[0] !== 'Mainnet') {
-      etherscan = 'https://' + network[0] + '.etherscan.io/';
+    } else if (network !== 'Mainnet') {
+      etherscan = 'https://' + network + '.etherscan.io/';
     }
   }
   return etherscan;
