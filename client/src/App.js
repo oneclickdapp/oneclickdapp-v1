@@ -3,6 +3,7 @@ import './App.css';
 import {
   Grid,
   Message,
+  Input,
   Form,
   Menu,
   Segment,
@@ -22,6 +23,7 @@ import {
   Visibility,
   Accordion,
   Card,
+  Reveal,
   Sidebar,
   Dropdown
 } from 'semantic-ui-react';
@@ -45,7 +47,6 @@ import _ from 'lodash';
 // import sampleABI from './ethereum/sampleABI1'; // ABI for test purposes
 import PropTypes from 'prop-types';
 import { TwitterShareButton } from 'react-share';
-// var ENS = require('ethereum-ens');
 const axios = require('axios');
 // Dapparatus
 const METATX = {
@@ -101,6 +102,7 @@ class App extends Component {
       externalContracts: [],
       userHasBeenLoaded: false,
       activeIndex: [],
+      activeItem: 'write',
       // ENS
       ensSubnode: 'myDapp2',
       ensFee: 0.01,
@@ -355,7 +357,7 @@ class App extends Component {
     update[e.target.name] = e.target.value;
     this.setState(update);
   }
-  handleClick = (e, titleProps) => {
+  handleToggleAccordian = (e, titleProps) => {
     // Manages which premium feature is active
     const { index } = titleProps;
     const { activeIndex } = this.state;
@@ -365,6 +367,8 @@ class App extends Component {
     } else newIndex.push(index);
     this.setState({ activeIndex: newIndex });
   };
+  handleMenuTabChange = (e, { name }) =>
+    this.setState({ activeItem: name, activeIndex: [] });
   handleChangeABI = (e, { value }) => {
     this.setState({ abi: '', abiRaw: value, loading: true, errorMessage: '' });
     const { contractAddress } = this.state;
@@ -440,7 +444,7 @@ class App extends Component {
       abiRaw: JSON.stringify(result.abi),
       currentDappFormStep: 2
     });
-  };
+  }; // dAppForm search bar
   handleSearchChange = (e, { value }) => {
     this.setState({ isLoading: true, dappName: value });
     setTimeout(() => {
@@ -452,7 +456,7 @@ class App extends Component {
         results: _.filter(this.state.externalContracts, isMatch)
       });
     }, 300);
-  };
+  }; // dAppForm search bar
   handleEnsSearchChange = (e, { value }) => {
     this.setState({ isLoading: true, ensSubnode: value });
     setTimeout(() => {
@@ -465,9 +469,9 @@ class App extends Component {
         results: _.filter(this.state.existingSubnodes, isExactMatch)
       });
     }, 300);
-  };
+  }; // dAppForm ENS selection
   resetComponent = () =>
-    this.setState({ isLoading: false, results: [], dappName: '' });
+    this.setState({ isLoading: false, results: [], dappName: '' }); // dAppForm search bar/ENS selection
   handleSubmitSend = (e, { name }) => {
     const { methodData, abi, contractAddress, account } = this.state;
     // send() methods alter the contract state, and require gas.
@@ -1662,44 +1666,14 @@ class App extends Component {
     );
   }
   // New Interface
-  renderInterface() {
-    const errorMessage = this.showErrorMessage('popup');
-    return (
-      <div>
-        <Container
-          style={{
-            paddingTop: '2em',
-            paddingBottom: '5em'
-          }}
-        >
-          <Grid stackable columns={2}>
-            <Grid.Column>
-              <Header>
-                Write functions
-                <Header.Subheader>(must pay transaction fee)</Header.Subheader>
-              </Header>
-              {this.renderSendFunctions()}
-            </Grid.Column>
-            <Grid.Column>
-              <Header>
-                Read functions
-                <Header.Subheader>(free)</Header.Subheader>
-              </Header>
-              {this.renderCallFunctions()}
-            </Grid.Column>
-          </Grid>
-        </Container>
-        {errorMessage}
-      </div>
-    );
-  }
-  renderPremiumInterface() {
+  renderNewInterface() {
     const { dappData, activeIndex } = this.state;
     const errorMessage = this.showErrorMessage('popup');
-    let displayPremiumInterface = [];
-    if (dappData.functions) {
+    let displayFunctions = [];
+    // If premium, then do this
+    if (dappData.premium && dappData.functions) {
       dappData.functions.forEach((item, index) => {
-        displayPremiumInterface.push(
+        displayFunctions.push(
           <Accordion
             as={Card}
             link
@@ -1713,7 +1687,7 @@ class App extends Component {
               <Accordion.Title
                 active={activeIndex.includes(index)}
                 index={index}
-                onClick={this.handleClick}
+                onClick={this.handleToggleAccordian}
               >
                 <Grid columns={2} verticalAlign="middle">
                   <Grid.Column>
@@ -1744,6 +1718,191 @@ class App extends Component {
           </Accordion>
         );
       });
+      displayFunctions = <Card.Group>{displayFunctions}</Card.Group>;
+    }
+    // If not premium, then do This
+    else {
+      let showFunctions;
+      if (this.state.activeItem === 'read') {
+        showFunctions = this.renderNewCallFunctions();
+      } else if (this.state.activeItem === 'write') {
+        showFunctions = this.renderNewSendFunctions();
+      } else if (this.state.activeItem === 'search') {
+        // this.renderFunctionResults()
+      }
+
+      displayFunctions = (
+        <div>
+          <Menu tabular attached="top">
+            <Menu.Item
+              icon="pencil"
+              name="write"
+              active={this.state.activeItem === 'write'}
+              onClick={this.handleMenuTabChange}
+            />
+            <Menu.Item
+              icon="eye"
+              name="read"
+              active={this.state.activeItem === 'read'}
+              onClick={this.handleMenuTabChange}
+            />
+          </Menu>
+          <Segment attached="bottom">
+            <Card.Group>{showFunctions}</Card.Group>
+          </Segment>
+        </div>
+      );
+    }
+    return (
+      <div
+        style={{
+          paddingTop: '3em',
+          paddingBottom: '5em'
+        }}
+      >
+        <Container>{displayFunctions}</Container>
+        {errorMessage}
+      </div>
+    );
+  }
+  renderNewSendFunctions() {
+    const abiObject = JSON.parse(this.state.abi);
+    let displayFunctions = [];
+    abiObject.forEach((method, index) => {
+      if (method.stateMutability !== 'view' && method.type === 'function')
+        displayFunctions.push(
+          <Accordion
+            as={Card}
+            link
+            raised
+            centered
+            key={index}
+            className="function"
+            // style={{ background: dappData.colorLight }}
+          >
+            <Card.Content textAlign="left">
+              <Accordion.Title
+                active={this.state.activeIndex.includes(index)}
+                index={index}
+                onClick={this.handleToggleAccordian}
+              >
+                <Grid columns="equal" verticalAlign="middle">
+                  <Grid.Column width={3}>
+                    <Icon size="large" circular name="pencil" />
+                  </Grid.Column>
+                  <Grid.Column fluid>
+                    <Header style={{ wordWrap: 'break-word' }}>
+                      {method.name}
+                    </Header>
+                  </Grid.Column>
+                </Grid>
+              </Accordion.Title>
+              <Accordion.Content
+                active={this.state.activeIndex.includes(index)}
+              >
+                {this.renderPremiumFunctions(method.name)}
+              </Accordion.Content>
+            </Card.Content>
+          </Accordion>
+        );
+    });
+    return displayFunctions;
+  }
+  renderNewCallFunctions() {
+    const abiObject = JSON.parse(this.state.abi);
+    let displayFunctions = [];
+    abiObject.forEach((method, index) => {
+      if (method.stateMutability === 'view')
+        displayFunctions.push(
+          <Accordion
+            as={Card}
+            link
+            raised
+            centered
+            key={index}
+            className="function"
+            // style={{ background: dappData.colorLight }}
+          >
+            <Card.Content textAlign="left">
+              <Accordion.Title
+                active={this.state.activeIndex.includes(index)}
+                index={index}
+                onClick={this.handleToggleAccordian}
+              >
+                <Grid columns="equal" verticalAlign="middle">
+                  <Grid.Column width={3}>
+                    <Icon size="large" circular name="eye" />
+                  </Grid.Column>
+                  <Grid.Column fluid>
+                    <Header style={{ wordWrap: 'break-word' }}>
+                      {method.name}
+                    </Header>
+                  </Grid.Column>
+                </Grid>
+              </Accordion.Title>
+              <Accordion.Content
+                active={this.state.activeIndex.includes(index)}
+              >
+                {this.renderPremiumFunctions(method.name)}
+              </Accordion.Content>
+            </Card.Content>
+          </Accordion>
+        );
+    });
+    return displayFunctions;
+  }
+  renderPremiumInterface() {
+    const { dappData, activeIndex } = this.state;
+    const errorMessage = this.showErrorMessage('popup');
+    let displayPremiumInterface = [];
+    if (dappData.functions) {
+      dappData.functions.forEach((item, index) => {
+        displayPremiumInterface.push(
+          <Accordion
+            as={Card}
+            link
+            raised
+            centered
+            key={index}
+            className="function"
+            style={{ background: dappData.colorLight }}
+          >
+            <Card.Content textAlign="left">
+              <Accordion.Title
+                active={activeIndex.includes(index)}
+                index={index}
+                onClick={this.handleToggleAccordian}
+              >
+                <Grid columns={2} verticalAlign="middle">
+                  <Grid.Column>
+                    <Icon
+                      size="huge"
+                      circular
+                      name={item.icon}
+                      style={{
+                        background: dappData.colorDark,
+                        color: 'white'
+                        // color: dappData.colorLight
+                      }}
+                    />
+                  </Grid.Column>
+                  <Grid.Column>
+                    <Header>{item.displayName}</Header>
+                  </Grid.Column>
+                </Grid>
+              </Accordion.Title>
+              <Accordion.Content active={activeIndex.includes(index)}>
+                {this.renderPremiumFunctions(
+                  item.name,
+                  true,
+                  item.helperText,
+                  dappData.colorDark
+                )}
+              </Accordion.Content>
+            </Card.Content>
+          </Accordion>
+        );
+      });
     }
     return (
       <div
@@ -1759,7 +1918,7 @@ class App extends Component {
       </div>
     );
   }
-  renderPremiumFunctions(methodName, helperText, colorDark) {
+  renderPremiumFunctions(methodName, premium, helperText, colorDark) {
     if (this.state.abi) {
       try {
         const methodIndex = this.state.methodData.findIndex(
@@ -1774,18 +1933,29 @@ class App extends Component {
         let displayMethod = <div />;
         let displayButton = <div />;
         let displayHelperText;
-        if (helperText != '') {
+        if (helperText && helperText != '') {
           displayHelperText = (
             <Segment style={{ background: colorDark, color: 'white' }}>
               <i>{helperText}</i>
             </Segment>
           );
         }
+        let displayFooterText = '';
+        if (premium) {
+          displayFooterText = <i>{method.name}</i>;
+        }
+        let buttonStyle = {
+          backgroundColor: '#c2cafc'
+        };
+        if (colorDark) {
+          buttonStyle = {
+            backgroundColor: colorDark,
+            color: 'white'
+          };
+        }
         if (method.stateMutability !== 'view' && method.type === 'function') {
-          var methodTypeHelperText = 'function without arguments';
           onSubmit = this.handleSubmitSend;
           method.inputs.forEach((input, j) => {
-            methodTypeHelperText = 'function';
             inputs.push(
               <Form.Input
                 required
@@ -1799,7 +1969,6 @@ class App extends Component {
             );
           });
           if (method.payable) {
-            methodTypeHelperText = 'payable function';
             inputs.push(
               <Form.Input
                 required
@@ -1817,7 +1986,7 @@ class App extends Component {
               icon="write"
               labelPosition="left"
               content="Sign & Submit"
-              style={{ background: colorDark, color: 'white' }}
+              style={buttonStyle}
             />
           );
         } else if (method.stateMutability === 'view') {
@@ -1840,7 +2009,7 @@ class App extends Component {
               icon="refresh"
               content="Check"
               labelPosition="left"
-              style={{ background: colorDark, color: 'white' }}
+              style={buttonStyle}
             />
           );
         }
@@ -1873,8 +2042,7 @@ class App extends Component {
               {inputs}
               <Container textAlign="center">
                 {displayButton}
-
-                <i>({method.name})</i>
+                {displayFooterText}
               </Container>
             </Form>
             {displayResponse}
@@ -2028,10 +2196,8 @@ class App extends Component {
       mainDisplay = displayLoading;
     } else if (displayDappForm) {
       mainDisplay = this.renderDappForm();
-    } else if (this.state.dappData.premium) {
-      mainDisplay = this.renderPremiumInterface();
     } else {
-      mainDisplay = this.renderOldInterface();
+      mainDisplay = this.renderNewInterface();
     }
     return (
       <div className="App">
@@ -2314,16 +2480,14 @@ const Heading = ({ mobile, dappData }) => {
     return (
       <div className="defaultHeader">
         <Grid
-          container
           stackable
           columns={2}
-          textAlign="center"
           style={{
             paddingTop: mobile ? '1em' : '2em'
           }}
         >
-          <Grid.Row verticalAlign="middle">
-            <Grid.Column textAlign="center">
+          <Grid.Row textAlign="center" verticalAlign="middle">
+            <Grid.Column>
               <Header as="h1" style={{ wordWrap: 'break-word' }}>
                 dApp: <b>{dappData.dappName}</b>
               </Header>
@@ -2343,8 +2507,8 @@ const Heading = ({ mobile, dappData }) => {
                 </Button>
               </TwitterShareButton>
             </Grid.Column>
-            <Grid.Column textAlign="left">
-              <Table basic definition collapsing>
+            <Grid.Column>
+              <Table basic unstackable definition>
                 <Table.Body>
                   <Table.Row>
                     <Table.Cell>
@@ -2429,6 +2593,8 @@ function getRegistryData(metaData, network) {
       <div>
         <Popup
           hoverable
+          keepInViewPort
+          position="bottom left"
           trigger={
             <Segment
               compact
@@ -2442,7 +2608,7 @@ function getRegistryData(metaData, network) {
             </Segment>
           }
         >
-          <Table definitioncollapsing>
+          <Table definition unstackable collapsing>
             <Table.Body>
               <Table.Row>
                 <Table.Cell>Description</Table.Cell>
