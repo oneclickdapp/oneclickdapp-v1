@@ -391,7 +391,7 @@ class App extends Component {
             if (method.stateMutability === 'view') {
               method.outputs.forEach((output, j) => {
                 if (!abiObject[i].outputs[j].name) {
-                  abiObject[i].outputs[j].name = '(unnamed' + (j + 1) + ')';
+                  abiObject[i].outputs[j].name = 'unnamed #' + (j + 1);
                 }
               });
             }
@@ -439,7 +439,7 @@ class App extends Component {
     const name = `${result.title} (clone)`;
     this.setState({
       dappName: name,
-      network: 'Mainnet',
+      requiredNetwork: 'Mainnet',
       contractAddress: result.address,
       abiRaw: JSON.stringify(result.abi),
       currentDappFormStep: 2
@@ -1117,7 +1117,7 @@ class App extends Component {
                         required
                         selection
                         inline
-                        name="network"
+                        name="requiredNetwork"
                         onChange={this.handleChange}
                         options={[
                           { key: 'Mainnet', value: 'Mainnet', text: 'Mainnet' },
@@ -1130,7 +1130,7 @@ class App extends Component {
                             text: 'Private (local-host)'
                           }
                         ]}
-                        value={this.state.network}
+                        value={this.state.requiredNetwork}
                       />
                     </Form.Input>
                   </Form.Group>
@@ -1709,7 +1709,8 @@ class App extends Component {
               </Accordion.Title>
               <Accordion.Content active={activeIndex.includes(index)}>
                 {this.renderPremiumFunctions(
-                  item.name,
+                  item.methodIndex,
+                  true,
                   item.helperText,
                   dappData.colorDark
                 )}
@@ -1800,7 +1801,7 @@ class App extends Component {
               <Accordion.Content
                 active={this.state.activeIndex.includes(index)}
               >
-                {this.renderPremiumFunctions(method.name)}
+                {this.renderPremiumFunctions(index)}
               </Accordion.Content>
             </Card.Content>
           </Accordion>
@@ -1843,7 +1844,7 @@ class App extends Component {
               <Accordion.Content
                 active={this.state.activeIndex.includes(index)}
               >
-                {this.renderPremiumFunctions(method.name)}
+                {this.renderPremiumFunctions(index)}
               </Accordion.Content>
             </Card.Content>
           </Accordion>
@@ -1852,78 +1853,76 @@ class App extends Component {
     return displayFunctions;
   }
   renderPremiumInterface() {
-    const { dappData, activeIndex } = this.state;
-    const errorMessage = this.showErrorMessage('popup');
-    let displayPremiumInterface = [];
-    if (dappData.functions) {
-      dappData.functions.forEach((item, index) => {
-        displayPremiumInterface.push(
-          <Accordion
-            as={Card}
-            link
-            raised
-            centered
-            key={index}
-            className="function"
-            style={{ background: dappData.colorLight }}
-          >
-            <Card.Content textAlign="left">
-              <Accordion.Title
-                active={activeIndex.includes(index)}
-                index={index}
-                onClick={this.handleToggleAccordian}
-              >
-                <Grid columns={2} verticalAlign="middle">
-                  <Grid.Column>
-                    <Icon
-                      size="huge"
-                      circular
-                      name={item.icon}
-                      style={{
-                        background: dappData.colorDark,
-                        color: 'white'
-                        // color: dappData.colorLight
-                      }}
-                    />
-                  </Grid.Column>
-                  <Grid.Column>
-                    <Header>{item.displayName}</Header>
-                  </Grid.Column>
-                </Grid>
-              </Accordion.Title>
-              <Accordion.Content active={activeIndex.includes(index)}>
-                {this.renderPremiumFunctions(
-                  item.name,
-                  true,
-                  item.helperText,
-                  dappData.colorDark
-                )}
-              </Accordion.Content>
-            </Card.Content>
-          </Accordion>
-        );
-      });
-    }
-    return (
-      <div
-        style={{
-          paddingTop: '3em',
-          paddingBottom: '5em'
-        }}
-      >
-        <Container>
-          <Card.Group>{displayPremiumInterface}</Card.Group>
-        </Container>
-        {errorMessage}
-      </div>
-    );
+    //Remove
+    // const { dappData, activeIndex } = this.state;
+    // const errorMessage = this.showErrorMessage('popup');
+    // let displayPremiumInterface = [];
+    // if (dappData.functions) {
+    //   dappData.functions.forEach((item, index) => {
+    //     displayPremiumInterface.push(
+    //       <Accordion
+    //         as={Card}
+    //         link
+    //         raised
+    //         centered
+    //         key={index}
+    //         className="function"
+    //         style={{ background: dappData.colorLight }}
+    //       >
+    //         <Card.Content textAlign="left">
+    //           <Accordion.Title
+    //             active={activeIndex.includes(index)}
+    //             index={index}
+    //             onClick={this.handleToggleAccordian}
+    //           >
+    //             <Grid columns={2} verticalAlign="middle">
+    //               <Grid.Column>
+    //                 <Icon
+    //                   size="huge"
+    //                   circular
+    //                   name={item.icon}
+    //                   style={{
+    //                     background: dappData.colorDark,
+    //                     color: 'white'
+    //                     // color: dappData.colorLight
+    //                   }}
+    //                 />
+    //               </Grid.Column>
+    //               <Grid.Column>
+    //                 <Header>{item.displayName}</Header>
+    //               </Grid.Column>
+    //             </Grid>
+    //           </Accordion.Title>
+    //           <Accordion.Content active={activeIndex.includes(index)}>
+    //             {this.renderPremiumFunctions(
+    //               index,
+    //               true,
+    //               item.helperText,
+    //               dappData.colorDark
+    //             )}
+    //           </Accordion.Content>
+    //         </Card.Content>
+    //       </Accordion>
+    //     );
+    //   });
+    // }
+    // return (
+    //   <div
+    //     style={{
+    //       paddingTop: '3em',
+    //       paddingBottom: '5em'
+    //     }}
+    //   >
+    //     <Container>
+    //       <Card.Group>{displayPremiumInterface}</Card.Group>
+    //     </Container>
+    //     {errorMessage}
+    //   </div>
+    // );
   }
-  renderPremiumFunctions(methodName, premium, helperText, colorDark) {
+  renderPremiumFunctions(methodIndex, premium, helperText, colorDark) {
     if (this.state.abi) {
       try {
-        const methodIndex = this.state.methodData.findIndex(
-          method => method.name === methodName
-        );
         const abiObject = JSON.parse(this.state.abi);
         const method = abiObject[methodIndex];
         let onSubmit = this.handleSubmitCall;
