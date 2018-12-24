@@ -1734,14 +1734,16 @@ class App extends Component {
 
       displayFunctions = (
         <div>
-          <Menu tabular attached="top">
+          <Menu tabular size="huge" attached="top">
             <Menu.Item
+              color="red"
               icon="pencil"
               name="write"
               active={this.state.activeItem === 'write'}
               onClick={this.handleMenuTabChange}
             />
             <Menu.Item
+              color="green"
               icon="eye"
               name="read"
               active={this.state.activeItem === 'read'}
@@ -2488,7 +2490,7 @@ const Heading = ({ mobile, dappData }) => {
           <Grid.Row textAlign="center" verticalAlign="middle">
             <Grid.Column>
               <Header as="h1" style={{ wordWrap: 'break-word' }}>
-                dApp: <b>{dappData.dappName}</b>
+                <b>{dappData.dappName}</b>
               </Header>
               <TwitterShareButton
                 title={
@@ -2533,7 +2535,7 @@ const Heading = ({ mobile, dappData }) => {
                     </Table.Cell>
                   </Table.Row>
                   <Table.Row>
-                    <Table.Cell>MetaData</Table.Cell>
+                    <Table.Cell textAlign="center">MetaData</Table.Cell>
                     <Table.Cell>{displayRegistryData} </Table.Cell>
                   </Table.Row>
                   <Table.Row>
