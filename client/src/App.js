@@ -217,10 +217,9 @@ class App extends Component {
     axios
       .get(`/user/${account}`)
       .then(response => {
-        console.log(response);
         if (response.data) {
           this.setState({
-            userSavedContracts: response.data,
+            userSavedContracts: response.data.userContracts,
             userHasBeenLoaded: true
           });
         } else console.log(response);
@@ -1437,7 +1436,7 @@ class App extends Component {
           Your saved dApps
         </Header>
         <div className="dappList">
-          {userSavedContracts !== undefined && userSavedContracts.length > 0 ? (
+          {userSavedContracts.length > 0 ? (
             <Table fixed selectable unstackable>
               <Table.Header>
                 <Table.Row textAlign="center">

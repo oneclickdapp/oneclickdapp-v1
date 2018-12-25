@@ -265,8 +265,21 @@ app.get('/user/:creatorAddress', (req, res) => {
           mnemonics = user.savedDapps;
           Contract.find({ mnemonic: { $in: mnemonics } })
             .sort({ _id: -1 })
-            .then(dapps => {
-              res.send(dapps);
+            .then(contractArray => {
+              userContracts = new Array();
+              contractArray.forEach(contract => {
+                var contractData = {
+                  contractName: contract.contractName,
+                  network: contract.network,
+                  mnemonic: contract.mnemonic,
+                  createdAt: contract._id.getTimestamp(),
+                  creatorAddress: contract.creatorAddress
+                };
+                userContracts.push(contractData);
+              });
+              res.send({
+                userContracts
+              });
             });
         } else {
           res.status(404).send(`No user saved dApps found  ${creatorAddress}`);
