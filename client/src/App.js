@@ -249,7 +249,13 @@ class App extends Component {
   };
 
   generateDapp = () => {
-    const { dappName, contractAddress, abiRaw, network, account } = this.state;
+    const {
+      dappName,
+      contractAddress,
+      abiRaw,
+      requiredNetwork,
+      account
+    } = this.state;
     this.showLoading('creating');
     const abi = JSON.parse(abiRaw);
     console.log('Generating unique URL...' + account);
@@ -258,7 +264,7 @@ class App extends Component {
         contractName: dappName,
         contractAddress,
         abi,
-        network: network,
+        network: requiredNetwork,
         creatorAddress: account
       })
       .then(res => {
