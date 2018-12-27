@@ -400,13 +400,25 @@ class App extends Component {
                 }
               });
             }
+            var newMethodData = this.state.methodData;
+            // Check whether the method exists in the arguments list
+            var methodExists = newMethodData[i];
+            // Make a new entry if the method doesn't exist
+            if (!methodExists) {
+              newMethodData.push({
+                name: method.name,
+                inputs: [],
+                outputs: []
+              });
+              this.setState({ methodData: newMethodData });
+            }
+            console.log(newMethodData);
           });
           const myContract = new web3.eth.Contract(abiObject, contractAddress);
           // Save the formatted abi for use in renderInterface()
           this.setState({
             abi: JSON.stringify(myContract.options.jsonInterface)
           });
-          abiObject.forEach(method => this.createMethodData(method.name));
         }
       } catch (err) {
         this.setState({
@@ -417,10 +429,9 @@ class App extends Component {
     }
     this.setState({ loading: false });
   };
-  handleMethodDataChange = (e, { name, value, inputindex, payable }) => {
+  handleMethodDataChange = (e, { methodIndex, value, inputindex, payable }) => {
     // Takes inputs from the user and stores them to JSON object methodArguments
     let newMethodData = this.state.methodData;
-    const methodIndex = newMethodData.findIndex(method => method.name === name);
     if (inputindex === -1) {
       newMethodData[methodIndex].value = value;
     } else {
@@ -428,17 +439,6 @@ class App extends Component {
     }
     this.setState({ methodData: newMethodData, errorMessage: false });
     // console.log(JSON.stringify(this.state.methodData));
-  };
-  createMethodData = name => {
-    var newMethodData = this.state.methodData;
-    // Check whether the method exists in the arguments list
-    var methodExists = newMethodData.find(method => method.name === name);
-    // Make a new entry if the method doesn't exist
-    if (!methodExists) {
-      newMethodData.push({ name: name, inputs: [], outputs: [] });
-      this.setState({ methodData: newMethodData });
-    }
-    return newMethodData;
   };
   handleResultSelect = (e, { result }) => {
     const name = `${result.title} (clone)`;
@@ -477,17 +477,13 @@ class App extends Component {
   }; // dAppForm ENS selection
   resetComponent = () =>
     this.setState({ isLoading: false, results: [], dappName: '' }); // dAppForm search bar/ENS selection
-  handleSubmitSend = (e, { name }) => {
+  handleSubmitSend = (e, { methodIndex }) => {
     const { methodData, abi, contractAddress, account } = this.state;
     // send() methods alter the contract state, and require gas.
-    console.log("Performing function 'send()'...");
+    console.log('Performing function #' + methodIndex + " 'send()'...");
     this.setState({ errorMessage: '' });
     let newMethodData = methodData;
-    const methodIndex = methodData.findIndex(method => method.name === name);
-
-    // note: only gets first method. There could be more!
-    // TODO fix this ^
-    const method = methodData.find(method => method.name === name);
+    const method = methodData[methodIndex];
     if (!method) {
       this.setState({ errorMessage: 'You must enter some values' });
     } else {
@@ -505,7 +501,7 @@ class App extends Component {
             value: web3.utils.toWei(method.value || '0', 'ether')
           })
           .then(response => {
-            console.log('pass bool check' + typeof response);
+            // console.log('pass bool check' + typeof response);
             if (typeof response === 'boolean') {
               newMethodData[methodIndex].outputs[0] = response.toString();
             } else if (typeof response === 'object') {
@@ -523,15 +519,14 @@ class App extends Component {
       }
     }
   };
-  handleSubmitCall = (e, { name }) => {
+  handleSubmitCall = (e, { methodIndex }) => {
     // call() methods do not alter the contract state. No gas needed.
     const { abi, contractAddress, methodData } = this.state;
-    console.log("Performing function 'call()'...");
+    console.log('Performing function #' + methodIndex + " 'call()'...");
     let newMethodData = methodData;
     this.setState({ errorMessage: '' });
     // note: only gets first method. There could be more with identical name
     // TODO fix this ^
-    const methodIndex = methodData.findIndex(method => method.name === name);
     const method = methodData[methodIndex];
     console.log('method submitted' + JSON.stringify(method));
     let inputs = method.inputs || []; // return an empty array if no inputs exist
@@ -543,7 +538,7 @@ class App extends Component {
         contractAddress
       );
       // using "..." to destructure inputs[]
-      myContract.methods[name](...inputs)
+      myContract.methods[method.name](...inputs)
         .call({
           from: this.state.account
         })
@@ -1439,7 +1434,7 @@ class App extends Component {
           {<Blockie floated config={{ size: 2 }} address={account} /> || (
             <Icon name="user" />
           )}{' '}
-          Your saved dApps
+          My saved dApps
         </Header>
         <div className="dappList">
           {userSavedContracts.length > 0 ? (
@@ -1965,7 +1960,7 @@ class App extends Component {
             inputs.push(
               <Form.Input
                 required
-                name={method.name}
+                methodIndex={methodIndex}
                 key={j}
                 inputindex={j}
                 label={input.name}
@@ -1980,7 +1975,7 @@ class App extends Component {
                 required
                 key={method.name}
                 inputindex={-1}
-                name={method.name}
+                methodIndex={methodIndex}
                 label={`Value to send (ETH)`}
                 placeholder="value"
                 onChange={this.handleMethodDataChange}
@@ -2000,7 +1995,7 @@ class App extends Component {
             inputs.push(
               <Form.Input
                 required
-                name={method.name}
+                methodIndex={methodIndex}
                 inputindex={j}
                 key={j}
                 inline
@@ -2044,7 +2039,11 @@ class App extends Component {
         displayMethod = (
           <div>
             {displayHelperText}
-            <Form onSubmit={onSubmit} name={method.name} key={method.name}>
+            <Form
+              onSubmit={onSubmit}
+              methodIndex={methodIndex}
+              key={method.name}
+            >
               {inputs}
               <Container textAlign="center">
                 {displayButton}
