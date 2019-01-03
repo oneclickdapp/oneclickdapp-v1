@@ -1,7 +1,6 @@
 {
-  "name": "one-click-dapp",
+  "name": "NFT-Trophy-Case",
   "version": "0.0.1",
-  "description": "A simple Node app with SQLite as a database management system, instantly up and running.",
   "main": "server.js",
   "scripts": {
     "start": "concurrently \"npm run server\" \"npm run client\" ",
