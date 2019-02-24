@@ -73,4 +73,4 @@ Please consider helping by submitting an issue or PR.
 ## Contact
 
 [Patrick](https://twitter.com/pi0neerpat),
-[Joseph](https://twitter.com/cupojoseph)
+[Joseph](https://twitter.com/cupojoseph )
