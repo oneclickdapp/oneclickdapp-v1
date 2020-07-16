@@ -10,7 +10,7 @@
     "dapparatus": "^1.0.42",
     "deepmerge": "^2.2.1",
     "ethereum-ens": "^0.7.4",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.19",
     "prop-types": "^15.6.2",
     "react": "^16.5.0",
     "react-blockies": "^1.4.0",
